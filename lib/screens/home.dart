@@ -134,18 +134,20 @@ class HomePage extends StatelessWidget {
 
       // -------------------- BOTTOM NAV --------------------
       bottomNavigationBar: BottomAppBar(
+        color: const Color(0xFFF8F7F6),
+        elevation: 8,
         shape: const CircularNotchedRectangle(),
         notchMargin: 8,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+        child: SizedBox(
+          height: 70,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              _NavItem(icon: Icons.home, label: "Home", active: true),
-              _NavItem(icon: Icons.checkroom, label: "Wardrobe"),
-              SizedBox(width: 40),
-              _NavItem(icon: Icons.science, label: "AI Labs"),
-              _NavItem(icon: Icons.person, label: "Profile"),
+            children: [
+              const Expanded(child: _NavItem(icon: Icons.home, label: "Home", active: true)),
+              const Expanded(child: _NavItem(icon: Icons.checkroom, label: "Wardrobe")),
+              const SizedBox(width: 40),
+              const Expanded(child: _NavItem(icon: Icons.people, label: "Partners")),
+              const Expanded(child: _NavItem(icon: Icons.account_circle, label: "Profile")),
             ],
           ),
         ),
@@ -153,8 +155,10 @@ class HomePage extends StatelessWidget {
 
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFF602D08),
+        elevation: 6,
         onPressed: () {},
-        child: const Icon(Icons.add_a_photo),
+        shape: const CircleBorder(),
+        child: const Icon(Icons.camera_alt, color: Colors.white, size: 28),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
@@ -289,12 +293,14 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = active ? const Color(0xFF602D08) : const Color(0xFF9A6C4C);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, color: color),
-        Text(label, style: TextStyle(fontSize: 10, color: color)),
+        Icon(icon, color: const Color(0xFF602D08), size: 24),
+        const SizedBox(height: 4),
+        Text(label, 
+          style: const TextStyle(fontSize: 11, color: Color(0xFF602D08)),
+        ),
       ],
     );
   }
