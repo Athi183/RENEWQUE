@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'login.dart';
 class WelcomePage extends StatelessWidget {
   const WelcomePage({super.key});
 
@@ -91,7 +91,12 @@ class WelcomePage extends StatelessWidget {
                               borderRadius: BorderRadius.circular(16),
                             ),
                           ),
-                          onPressed: () {},
+                          onPressed: () {
+                             Navigator.push(context,MaterialPageRoute(builder: (context)=>const LoginOrRegisterPage(),
+                            ),
+                            );
+
+                          },
                           child: const Text(
                             'Register',
                             style: TextStyle(
@@ -115,7 +120,11 @@ class WelcomePage extends StatelessWidget {
                               borderRadius: BorderRadius.circular(16),
                             ),
                           ),
-                          onPressed: () {},
+                          onPressed: () {
+                            Navigator.push(context,MaterialPageRoute(builder: (context)=>const LoginOrRegisterPage(),
+                            ),
+                            );
+                          },
                           child: const Text(
                             'Login',
                             style: TextStyle(
