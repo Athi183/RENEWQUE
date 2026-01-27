@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'screens/welcome.dart';
 import 'screens/partner_boutiques.dart';
 import 'screens/assistant_chat.dart';
+import 'screens/login.dart';
+
 
 void main() {
   runApp(const MyApp());
@@ -19,7 +21,7 @@ class MyApp extends StatelessWidget {
         fontFamily: 'Manrope',
         scaffoldBackgroundColor: const Color(0xFFF8F7F6),
       ),
-      home: const AssistantChatPage(),
+      home: const LoginOrRegisterPage(),
     );
   }
 }
