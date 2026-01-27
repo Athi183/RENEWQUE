@@ -21,7 +21,7 @@ class MyApp extends StatelessWidget {
         fontFamily: 'Manrope',
         scaffoldBackgroundColor: const Color(0xFFF8F7F6),
       ),
-      home: const AssistantChatPage(),
+      home: const WelcomePage(),
     );
   }
 }
