@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
+import '../services/groq_api.dart';
 
 class AssistantChatPage extends StatefulWidget {
   const AssistantChatPage({super.key});
@@ -30,19 +31,37 @@ class _AssistantChatPageState extends State<AssistantChatPage> {
     }
   }
 
-  void sendMessage() {
+  Future<void> sendMessage() async {
     if (_controller.text.trim().isEmpty && selectedImage == null) return;
 
+    final userText = _controller.text;
+    final image = selectedImage;
+
     setState(() {
-      messages.add({
-        "role": "user",
-        "text": _controller.text,
-        "image": selectedImage,
-      });
+      messages.add({"role": "user", "text": userText, "image": image});
     });
 
     _controller.clear();
     selectedImage = null;
+
+    // 🔥 CALL GROQ API HERE
+    try {
+      final aiReply = await GroqService.sendMessage(
+        text: userText,
+        image: image,
+      );
+
+      setState(() {
+        messages.add({"role": "ai", "text": aiReply});
+      });
+    } catch (e) {
+      setState(() {
+        messages.add({
+          "role": "ai",
+          "text": "Sorry, something went wrong. Please try again.",
+        });
+      });
+    }
   }
 
   @override

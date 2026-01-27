@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'home.dart';
 
 class LoginOrRegisterPage extends StatefulWidget {
   const LoginOrRegisterPage({super.key});
@@ -67,7 +67,7 @@ class _LoginOrRegisterPageState extends State<LoginOrRegisterPage> {
           const Spacer(),
           Text(
             "RENEWQUE",
-            style: GoogleFonts.manrope(
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
@@ -95,10 +95,10 @@ class _LoginOrRegisterPageState extends State<LoginOrRegisterPage> {
       padding: const EdgeInsets.only(top: 20),
       child: Text(
         isLogin ? "Welcome Back" : "Create Account",
-        style: GoogleFonts.manrope(
+        style: const TextStyle(
           fontSize: 32,
           fontWeight: FontWeight.bold,
-          color: textDark,
+          color: Color(0xFF1B130D),
         ),
         textAlign: TextAlign.center,
       ),
@@ -110,7 +110,7 @@ class _LoginOrRegisterPageState extends State<LoginOrRegisterPage> {
       padding: const EdgeInsets.all(16),
       child: Text(
         "Join the movement for ethical fashion redesign and textile waste reduction.",
-        style: GoogleFonts.manrope(fontSize: 15),
+        style: const TextStyle(fontSize: 15),
         textAlign: TextAlign.center,
       ),
     );
@@ -201,9 +201,9 @@ class _LoginOrRegisterPageState extends State<LoginOrRegisterPage> {
           children: [
             const Text("Password",
                 style: TextStyle(fontWeight: FontWeight.w600)),
-            Text(
+            const Text(
               "Forgot?",
-              style: TextStyle(color: primary, fontSize: 12),
+              style: TextStyle(color: Color(0xFF602D08), fontSize: 12),
             ),
           ],
         ),
@@ -217,7 +217,7 @@ class _LoginOrRegisterPageState extends State<LoginOrRegisterPage> {
                 obscurePassword
                     ? Icons.visibility
                     : Icons.visibility_off,
-                color: primary,
+                color: const Color(0xFF602D08),
               ),
               onPressed: () =>
                   setState(() => obscurePassword = !obscurePassword),
@@ -241,7 +241,12 @@ class _LoginOrRegisterPageState extends State<LoginOrRegisterPage> {
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
-        onPressed: () {},
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const HomePage()),
+          );
+        },
         child: Text(
           isLogin ? "Sign In" : "Register",
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -254,14 +259,14 @@ class _LoginOrRegisterPageState extends State<LoginOrRegisterPage> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 24),
       child: Row(
-        children: const [
-          Expanded(child: Divider()),
-          Padding(
+        children: [
+          const Expanded(child: Divider()),
+          const Padding(
             padding: EdgeInsets.symmetric(horizontal: 10),
             child: Text("OR CONTINUE WITH",
                 style: TextStyle(fontSize: 11)),
           ),
-          Expanded(child: Divider()),
+          const Expanded(child: Divider()),
         ],
       ),
     );
