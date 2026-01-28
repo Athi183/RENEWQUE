@@ -46,20 +46,14 @@ class _AssistantChatPageState extends State<AssistantChatPage> {
 
     // 🔥 CALL GROQ API HERE
     try {
-      final aiReply = await GroqService.sendMessage(
-        text: userText,
-        image: image,
-      );
+      final aiReply = await GroqService.sendMessage(text: userText);
 
       setState(() {
         messages.add({"role": "ai", "text": aiReply});
       });
     } catch (e) {
       setState(() {
-        messages.add({
-          "role": "ai",
-          "text": "Sorry, something went wrong. Please try again.",
-        });
+        messages.add({"role": "ai", "text": "ERROR: $e"});
       });
     }
   }
