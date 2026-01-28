@@ -11,7 +11,7 @@ class GroqService {
   static const String _url = "https://api.groq.com/openai/v1/chat/completions";
   
   // ✅ Using openai/gpt-oss-120b model
-  static const String _model = "openai/gpt-oss-120b";
+  static const String _model = "llama-3.1-8b-instant";
   
   // Token limits to respect free tier quota
   static const int _maxTokens = 512; // Conservative limit for free tier
