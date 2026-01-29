@@ -1,31 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-void main() {
-  runApp(const RenewqueApp());
-}
-
-class RenewqueApp extends StatelessWidget {
-  const RenewqueApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        // Using Manrope font as specified in the HTML
-        textTheme: GoogleFonts.manropeTextTheme(),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF602D08), // Primary brand color
-          primary: const Color(0xFF602D08),
-          surface: const Color(0xFFF8F7F6),
-        ),
-      ),
-      home: const RiskPage(),
-    );
-  }
-}
+// Entry point is in lib/main.dart; use the app's single entrypoint.
 
 class RiskPage extends StatelessWidget {
   const RiskPage({super.key});
