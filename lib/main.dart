@@ -22,6 +22,10 @@ class MyApp extends StatelessWidget {
         fontFamily: 'Manrope',
         scaffoldBackgroundColor: const Color(0xFFF8F7F6),
       ),
+      routes: {
+        '/': (context) => const WelcomePage(),
+        '/risk': (context) => const RiskPage(),
+      },
       home: const WelcomePage(),
     );
   }
