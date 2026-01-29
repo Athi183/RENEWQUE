@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'login.dart';
 class WelcomePage extends StatelessWidget {
   const WelcomePage({super.key});
@@ -36,7 +37,7 @@ class WelcomePage extends StatelessWidget {
                           fontSize: 32,
                           letterSpacing: 4,
                           fontWeight: FontWeight.w400,
-                          fontFamily: 'PlayfairDisplay',
+                          fontFamily: GoogleFonts.playfairDisplay().fontFamily,
                           color: Color(0xFF1B130D),
                         ),
                       ),
