@@ -9,8 +9,8 @@ class GroqService {
   
   // ✅ CORRECT Groq API endpoint
   static const String _url = "https://api.groq.com/openai/v1/chat/completions";
-  
-  // ✅ Using openai/gpt-oss-120b model
+
+  // ✅ Using llama instant model
   static const String _model = "llama-3.1-8b-instant";
   
   // Token limits to respect free tier quota
