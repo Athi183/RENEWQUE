@@ -1,7 +1,6 @@
 import 'package:fashion_ai/screens/assistant_chat.dart';
 import 'package:flutter/material.dart';
 import 'screens/welcome.dart';
-import 'screens/risk.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
@@ -22,10 +21,6 @@ class MyApp extends StatelessWidget {
         fontFamily: 'Manrope',
         scaffoldBackgroundColor: const Color(0xFFF8F7F6),
       ),
-      routes: {
-        '/': (context) => const WelcomePage(),
-        '/risk': (context) => const RiskPage(),
-      },
       home: const WelcomePage(),
     );
   }
