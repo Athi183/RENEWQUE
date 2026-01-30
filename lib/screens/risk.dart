@@ -15,7 +15,7 @@ class RiskPage extends StatelessWidget {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, size: 20),
-          onPressed: () {},
+          onPressed: () => Navigator.of(context).pop(),
         ),
         title: const Text(
           'Risk Analysis', // Header title

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'risk.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -82,6 +83,9 @@ class HomePage extends StatelessWidget {
                   "https://lh3.googleusercontent.com/aida-public/AB6AXuDssowVelviqD8JE_EgbYNOSqzKIWzgfaW_9odOo-lk9XddzwUiDTDGYCYQl-6obvynwYvInnAR0f-ZsFDmUUQtXHwFVrKXEw6EqaUydOcHTktXaPQoq_BpldQ1cY78QIIVUeK4IpB1e1Ie1yGBgMG_T6yMYV7gGF0ogiN8F28Mb9O9zCEjE6eGHMxX8GBPid8GVN_28ByXAubwSK7oU8L0kefJu20A8U_XfDjpXM7s09qu_0Kp1hJG-Dhj4JsYnJDiinwxiTxGv4A",
               tag: "AI POWERED",
               buttonText: "Analyze Now",
+              onPressed: () {
+                Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RiskPage()));
+              },
             ),
 
             // Redesign Card
@@ -173,6 +177,7 @@ class _FeatureCard extends StatelessWidget {
   final String imageUrl;
   final String tag;
   final String buttonText;
+  final VoidCallback? onPressed;
 
   const _FeatureCard({
     required this.title,
@@ -180,6 +185,7 @@ class _FeatureCard extends StatelessWidget {
     required this.imageUrl,
     required this.tag,
     required this.buttonText,
+    this.onPressed,
   });
 
   @override
@@ -226,7 +232,7 @@ class _FeatureCard extends StatelessWidget {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF602D08),
                         ),
-                        onPressed: () {},
+                        onPressed: onPressed ?? () {},
                         child: Text(buttonText),
                       )
                     ],
