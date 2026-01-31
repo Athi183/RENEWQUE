@@ -1,6 +1,5 @@
 import 'package:fashion_ai/screens/assistant_chat.dart';
 import 'package:flutter/material.dart';
-import 'screens/welcome.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import '../services/groq_api.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class AssistantChatPage extends StatefulWidget {
   const AssistantChatPage({super.key});
@@ -38,24 +40,48 @@ class _AssistantChatPageState extends State<AssistantChatPage> {
     final image = selectedImage;
 
     setState(() {
-      messages.add({"role": "user", "text": userText, "image": image});
+      messages.add({"role": "user", "text": userText});
     });
 
     _controller.clear();
     selectedImage = null;
 
-    // 🔥 CALL GROQ API HERE
     try {
-      final aiReply = await GroqService.sendMessage(text: userText);
+      // 1. Get text redesign idea from Groq
+      final aiText = await GroqService.sendMessage(text: userText);
+
+      // 2. If image exists → call FastAPI
+      String? imageUrl;
+      if (image != null) {
+        imageUrl = await redesignImage(image, aiText);
+      }
 
       setState(() {
-        messages.add({"role": "ai", "text": aiReply});
+        messages.add({"role": "ai", "text": aiText, "imageUrl": imageUrl});
       });
     } catch (e) {
       setState(() {
-        messages.add({"role": "ai", "text": "ERROR: $e"});
+        messages.add({"role": "ai", "text": "Error: $e"});
       });
     }
+  }
+
+  Future<String> redesignImage(File imageFile, String prompt) async {
+    var request = http.MultipartRequest(
+      "POST",
+      Uri.parse("http://10.208.19.187:8000/redesign"),
+    );
+
+    request.fields["prompt"] = prompt;
+    request.files.add(
+      await http.MultipartFile.fromPath("image", imageFile.path),
+    );
+
+    var response = await request.send();
+    var responseData = await response.stream.bytesToString();
+    final json = jsonDecode(responseData);
+
+    return json["image_url"];
   }
 
   @override
@@ -70,10 +96,14 @@ class _AssistantChatPageState extends State<AssistantChatPage> {
               itemCount: messages.length,
               itemBuilder: (context, index) {
                 final msg = messages[index];
+
                 if (msg["role"] == "user") {
                   return _userMessage(msg["text"] ?? "");
                 } else {
-                  return _aiMessage(msg["text"] ?? "");
+                  return _aiMessage(
+                    msg["text"] ?? "",
+                    imageUrl: msg["imageUrl"],
+                  );
                 }
               },
             ),
@@ -115,21 +145,30 @@ class _AssistantChatPageState extends State<AssistantChatPage> {
     );
   }
 
-  Widget _aiMessage(String text) {
-    return Row(
+  Widget _aiMessage(String text, {String? imageUrl}) {
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _avatar(),
-        const SizedBox(width: 8),
-        Container(
-          padding: const EdgeInsets.all(14),
-          constraints: const BoxConstraints(maxWidth: 280),
-          decoration: BoxDecoration(
-            color: sageLight,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Text(text),
+        Row(
+          children: [
+            _avatar(),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.all(14),
+              constraints: const BoxConstraints(maxWidth: 280),
+              decoration: BoxDecoration(
+                color: sageLight,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Text(text),
+            ),
+          ],
         ),
+        if (imageUrl != null)
+          Padding(
+            padding: const EdgeInsets.only(left: 40, top: 8),
+            child: Image.network(imageUrl),
+          ),
       ],
     );
   }

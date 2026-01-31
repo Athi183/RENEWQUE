@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'assistant_chat.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -64,10 +65,7 @@ class HomePage extends StatelessWidget {
                   SizedBox(height: 6),
                   Text(
                     "Reduce waste through AI innovation.",
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Color(0xFF9A6C4C),
-                    ),
+                    style: TextStyle(fontSize: 16, color: Color(0xFF9A6C4C)),
                   ),
                 ],
               ),
@@ -122,8 +120,7 @@ class HomePage extends StatelessWidget {
                   _InfoCard(
                     icon: Icons.psychology,
                     title: "AI Reasoning",
-                    subtitle:
-                        "Transparent insights for ethical choices.",
+                    subtitle: "Transparent insights for ethical choices.",
                   ),
                 ],
               ),
@@ -143,11 +140,19 @@ class HomePage extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Expanded(child: _NavItem(icon: Icons.home, label: "Home", active: true)),
-              const Expanded(child: _NavItem(icon: Icons.checkroom, label: "Wardrobe")),
+              const Expanded(
+                child: _NavItem(icon: Icons.home, label: "Home", active: true),
+              ),
+              const Expanded(
+                child: _NavItem(icon: Icons.checkroom, label: "Wardrobe"),
+              ),
               const SizedBox(width: 40),
-              const Expanded(child: _NavItem(icon: Icons.people, label: "Partners")),
-              const Expanded(child: _NavItem(icon: Icons.account_circle, label: "Profile")),
+              const Expanded(
+                child: _NavItem(icon: Icons.people, label: "Partners"),
+              ),
+              const Expanded(
+                child: _NavItem(icon: Icons.account_circle, label: "Profile"),
+              ),
             ],
           ),
         ),
@@ -156,10 +161,17 @@ class HomePage extends StatelessWidget {
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFF602D08),
         elevation: 6,
-        onPressed: () {},
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const AssistantChatPage()),
+          );
+        },
+
         shape: const CircleBorder(),
         child: const Icon(Icons.camera_alt, color: Colors.white, size: 28),
       ),
+
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }
@@ -193,8 +205,9 @@ class _FeatureCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(16)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
+              ),
               child: Image.network(
                 imageUrl,
                 height: 180,
@@ -207,33 +220,42 @@ class _FeatureCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title,
-                      style: const TextStyle(
-                          fontSize: 20, fontWeight: FontWeight.bold)),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   const SizedBox(height: 8),
-                  Text(description,
-                      style: const TextStyle(color: Color(0xFF9A6C4C))),
+                  Text(
+                    description,
+                    style: const TextStyle(color: Color(0xFF9A6C4C)),
+                  ),
                   const SizedBox(height: 16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(tag,
-                          style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF602D08))),
+                      Text(
+                        tag,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF602D08),
+                        ),
+                      ),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF602D08),
                         ),
                         onPressed: () {},
                         child: Text(buttonText),
-                      )
+                      ),
                     ],
-                  )
+                  ),
                 ],
               ),
-            )
+            ),
           ],
         ),
       ),
@@ -266,13 +288,15 @@ class _InfoCard extends StatelessWidget {
           children: [
             Icon(icon, color: Color(0xFF602D08)),
             const SizedBox(height: 8),
-            Text(title,
-                style:
-                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            ),
             const SizedBox(height: 4),
-            Text(subtitle,
-                style:
-                    const TextStyle(fontSize: 12, color: Color(0xFF9A6C4C))),
+            Text(
+              subtitle,
+              style: const TextStyle(fontSize: 12, color: Color(0xFF9A6C4C)),
+            ),
           ],
         ),
       ),
@@ -298,7 +322,8 @@ class _NavItem extends StatelessWidget {
       children: [
         Icon(icon, color: const Color(0xFF602D08), size: 24),
         const SizedBox(height: 4),
-        Text(label, 
+        Text(
+          label,
           style: const TextStyle(fontSize: 11, color: Color(0xFF602D08)),
         ),
       ],
