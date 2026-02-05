@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'risk.dart';
-
+import 'selling.dart';
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
@@ -147,16 +147,24 @@ class HomePage extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Expanded(child: _NavItem(icon: Icons.home, label: "Home", active: true)),
-              const Expanded(child: _NavItem(icon: Icons.checkroom, label: "Wardrobe")),
+              Expanded(child: _NavItem(icon: Icons.home, label: "Home", active: true, onTap: () {})),
+              Expanded(child: _NavItem(icon: Icons.checkroom, label: "Wardrobe", onTap: () {})),
               const SizedBox(width: 40),
-              const Expanded(child: _NavItem(icon: Icons.people, label: "Partners")),
-              const Expanded(child: _NavItem(icon: Icons.account_circle, label: "Profile")),
+              Expanded(child: _NavItem(
+                icon: Icons.people, 
+                label: "Partners", 
+                onTap: () {
+                  Navigator.push(
+                    context, 
+                    MaterialPageRoute(builder: (context) => const PrelovedPage())
+                  );
+                }
+              )),
+              Expanded(child: _NavItem(icon: Icons.account_circle, label: "Profile", onTap: () {})),
             ],
           ),
         ),
       ),
-
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFF602D08),
         elevation: 6,
@@ -290,24 +298,29 @@ class _NavItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool active;
+  final VoidCallback? onTap;
 
   const _NavItem({
     required this.icon,
     required this.label,
     this.active = false,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, color: const Color(0xFF602D08), size: 24),
-        const SizedBox(height: 4),
-        Text(label, 
-          style: const TextStyle(fontSize: 11, color: Color(0xFF602D08)),
-        ),
-      ],
+    return InkWell(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: const Color(0xFF602D08), size: 24),
+          const SizedBox(height: 4),
+          Text(label, 
+            style: const TextStyle(fontSize: 11, color: Color(0xFF602D08)),
+          ),
+        ],
+      ),
     );
   }
 }
