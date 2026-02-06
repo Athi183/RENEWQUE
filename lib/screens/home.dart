@@ -159,7 +159,12 @@ class HomePage extends StatelessWidget {
                 child: _NavItem(
                   icon: Icons.checkroom,
                   label: "Wardrobe",
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const PrelovedPage()),
+                    );
+                  },
                 ),
               ),
               const SizedBox(width: 40),
