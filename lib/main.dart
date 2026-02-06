@@ -1,6 +1,7 @@
 import 'package:fashion_ai/screens/assistant_chat.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:fashion_ai/screens/welcome.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,7 +21,7 @@ class MyApp extends StatelessWidget {
         fontFamily: 'Manrope',
         scaffoldBackgroundColor: const Color(0xFFF8F7F6),
       ),
-      home: const AssistantChatPage(),
+      home: const WelcomePage(),
     );
   }
 }

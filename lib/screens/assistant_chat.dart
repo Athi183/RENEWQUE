@@ -25,12 +25,47 @@ class _AssistantChatPageState extends State<AssistantChatPage> {
   final ImagePicker _picker = ImagePicker();
 
   Future<void> pickImage() async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
-      setState(() {
-        selectedImage = File(image.path);
-      });
-    }
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text("Gallery"),
+              onTap: () async {
+                final XFile? image = await _picker.pickImage(
+                  source: ImageSource.gallery,
+                );
+                if (image != null) {
+                  setState(() {
+                    selectedImage = File(image.path);
+                  });
+                }
+                // ignore: use_build_context_synchronously
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text("Camera"),
+              onTap: () async {
+                final XFile? image = await _picker.pickImage(
+                  source: ImageSource.camera,
+                );
+                if (image != null) {
+                  setState(() {
+                    selectedImage = File(image.path);
+                  });
+                }
+                // ignore: use_build_context_synchronously
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> sendMessage() async {
@@ -40,17 +75,19 @@ class _AssistantChatPageState extends State<AssistantChatPage> {
     final image = selectedImage;
 
     setState(() {
-      messages.add({"role": "user", "text": userText});
+      messages.add({
+        "role": "user",
+        "text": userText,
+        "localImage": image?.path,
+      });
     });
 
     _controller.clear();
     selectedImage = null;
 
     try {
-      // 1. Get text redesign idea from Groq
       final aiText = await GroqService.sendMessage(text: userText);
 
-      // 2. If image exists → call FastAPI
       String? imageUrl;
       if (image != null) {
         imageUrl = await redesignImage(image, aiText);
@@ -81,6 +118,10 @@ class _AssistantChatPageState extends State<AssistantChatPage> {
     var responseData = await response.stream.bytesToString();
     final json = jsonDecode(responseData);
 
+    if (json["image_url"] == null) {
+      throw Exception(json["error"] ?? "Image generation failed");
+    }
+
     return json["image_url"];
   }
 
@@ -98,7 +139,10 @@ class _AssistantChatPageState extends State<AssistantChatPage> {
                 final msg = messages[index];
 
                 if (msg["role"] == "user") {
-                  return _userMessage(msg["text"] ?? "");
+                  return _userMessage(
+                    msg["text"] ?? "",
+                    localImage: msg["localImage"],
+                  );
                 } else {
                   return _aiMessage(
                     msg["text"] ?? "",
@@ -108,6 +152,41 @@ class _AssistantChatPageState extends State<AssistantChatPage> {
               },
             ),
           ),
+          if (selectedImage != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.file(
+                          selectedImage!,
+                          width: 120,
+                          height: 120,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      Positioned(
+                        top: -6,
+                        right: -6,
+                        child: IconButton(
+                          icon: const Icon(Icons.cancel, color: Colors.red),
+                          onPressed: () {
+                            setState(() {
+                              selectedImage = null;
+                            });
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
           _composer(),
           _bottomActions(),
         ],
@@ -173,21 +252,36 @@ class _AssistantChatPageState extends State<AssistantChatPage> {
     );
   }
 
-  Widget _userMessage(String text) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
+  Widget _userMessage(String text, {String? localImage}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        Container(
-          padding: const EdgeInsets.all(14),
-          constraints: const BoxConstraints(maxWidth: 280),
-          decoration: BoxDecoration(
-            color: beigeLight,
-            borderRadius: BorderRadius.circular(16),
+        if (localImage != null)
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.file(
+              File(localImage),
+              width: 160,
+              height: 160,
+              fit: BoxFit.cover,
+            ),
           ),
-          child: Text(text),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(14),
+              constraints: const BoxConstraints(maxWidth: 280),
+              decoration: BoxDecoration(
+                color: beigeLight,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Text(text),
+            ),
+            const SizedBox(width: 8),
+            _avatar(isUser: true),
+          ],
         ),
-        const SizedBox(width: 8),
-        _avatar(isUser: true),
       ],
     );
   }
