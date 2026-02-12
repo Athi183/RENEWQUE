@@ -5,12 +5,12 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class GroqService {
   // Load API key from .env file
-  static final String _apiKey = dotenv.env['GROQ_API'] ?? '';
-  
+  static String get _apiKey => dotenv.env['GROQ_API'] ?? '';
+
   // ✅ CORRECT Groq API endpoint
   static const String _url = "https://api.groq.com/openai/v1/chat/completions";
-  
-  // ✅ Using openai/gpt-oss-120b model
+
+  // ✅ Using llama instant model
   static const String _model = "llama-3.1-8b-instant";
   
   // Token limits to respect free tier quota

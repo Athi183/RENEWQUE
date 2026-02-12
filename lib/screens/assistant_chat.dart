@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import '../services/groq_api.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class AssistantChatPage extends StatefulWidget {
   const AssistantChatPage({super.key});
@@ -23,12 +25,47 @@ class _AssistantChatPageState extends State<AssistantChatPage> {
   final ImagePicker _picker = ImagePicker();
 
   Future<void> pickImage() async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
-      setState(() {
-        selectedImage = File(image.path);
-      });
-    }
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text("Gallery"),
+              onTap: () async {
+                final XFile? image = await _picker.pickImage(
+                  source: ImageSource.gallery,
+                );
+                if (image != null) {
+                  setState(() {
+                    selectedImage = File(image.path);
+                  });
+                }
+                // ignore: use_build_context_synchronously
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text("Camera"),
+              onTap: () async {
+                final XFile? image = await _picker.pickImage(
+                  source: ImageSource.camera,
+                );
+                if (image != null) {
+                  setState(() {
+                    selectedImage = File(image.path);
+                  });
+                }
+                // ignore: use_build_context_synchronously
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> sendMessage() async {
@@ -38,30 +75,54 @@ class _AssistantChatPageState extends State<AssistantChatPage> {
     final image = selectedImage;
 
     setState(() {
-      messages.add({"role": "user", "text": userText, "image": image});
+      messages.add({
+        "role": "user",
+        "text": userText,
+        "localImage": image?.path,
+      });
     });
 
     _controller.clear();
     selectedImage = null;
 
-    // 🔥 CALL GROQ API HERE
     try {
-      final aiReply = await GroqService.sendMessage(
-        text: userText,
-        image: image,
-      );
+      final aiText = await GroqService.sendMessage(text: userText);
+
+      String? imageUrl;
+      if (image != null) {
+        imageUrl = await redesignImage(image, aiText);
+      }
 
       setState(() {
-        messages.add({"role": "ai", "text": aiReply});
+        messages.add({"role": "ai", "text": aiText, "imageUrl": imageUrl});
       });
     } catch (e) {
       setState(() {
-        messages.add({
-          "role": "ai",
-          "text": "Sorry, something went wrong. Please try again.",
-        });
+        messages.add({"role": "ai", "text": "Error: $e"});
       });
     }
+  }
+
+  Future<String> redesignImage(File imageFile, String prompt) async {
+    var request = http.MultipartRequest(
+      "POST",
+      Uri.parse("http://10.208.19.187:8000/redesign"),
+    );
+
+    request.fields["prompt"] = prompt;
+    request.files.add(
+      await http.MultipartFile.fromPath("image", imageFile.path),
+    );
+
+    var response = await request.send();
+    var responseData = await response.stream.bytesToString();
+    final json = jsonDecode(responseData);
+
+    if (json["image_url"] == null) {
+      throw Exception(json["error"] ?? "Image generation failed");
+    }
+
+    return json["image_url"];
   }
 
   @override
@@ -76,14 +137,56 @@ class _AssistantChatPageState extends State<AssistantChatPage> {
               itemCount: messages.length,
               itemBuilder: (context, index) {
                 final msg = messages[index];
+
                 if (msg["role"] == "user") {
-                  return _userMessage(msg["text"] ?? "");
+                  return _userMessage(
+                    msg["text"] ?? "",
+                    localImage: msg["localImage"],
+                  );
                 } else {
-                  return _aiMessage(msg["text"] ?? "");
+                  return _aiMessage(
+                    msg["text"] ?? "",
+                    imageUrl: msg["imageUrl"],
+                  );
                 }
               },
             ),
           ),
+          if (selectedImage != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.file(
+                          selectedImage!,
+                          width: 120,
+                          height: 120,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      Positioned(
+                        top: -6,
+                        right: -6,
+                        child: IconButton(
+                          icon: const Icon(Icons.cancel, color: Colors.red),
+                          onPressed: () {
+                            setState(() {
+                              selectedImage = null;
+                            });
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
           _composer(),
           _bottomActions(),
         ],
@@ -121,40 +224,64 @@ class _AssistantChatPageState extends State<AssistantChatPage> {
     );
   }
 
-  Widget _aiMessage(String text) {
-    return Row(
+  Widget _aiMessage(String text, {String? imageUrl}) {
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _avatar(),
-        const SizedBox(width: 8),
-        Container(
-          padding: const EdgeInsets.all(14),
-          constraints: const BoxConstraints(maxWidth: 280),
-          decoration: BoxDecoration(
-            color: sageLight,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Text(text),
+        Row(
+          children: [
+            _avatar(),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.all(14),
+              constraints: const BoxConstraints(maxWidth: 280),
+              decoration: BoxDecoration(
+                color: sageLight,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Text(text),
+            ),
+          ],
         ),
+        if (imageUrl != null)
+          Padding(
+            padding: const EdgeInsets.only(left: 40, top: 8),
+            child: Image.network(imageUrl),
+          ),
       ],
     );
   }
 
-  Widget _userMessage(String text) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
+  Widget _userMessage(String text, {String? localImage}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        Container(
-          padding: const EdgeInsets.all(14),
-          constraints: const BoxConstraints(maxWidth: 280),
-          decoration: BoxDecoration(
-            color: beigeLight,
-            borderRadius: BorderRadius.circular(16),
+        if (localImage != null)
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.file(
+              File(localImage),
+              width: 160,
+              height: 160,
+              fit: BoxFit.cover,
+            ),
           ),
-          child: Text(text),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(14),
+              constraints: const BoxConstraints(maxWidth: 280),
+              decoration: BoxDecoration(
+                color: beigeLight,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Text(text),
+            ),
+            const SizedBox(width: 8),
+            _avatar(isUser: true),
+          ],
         ),
-        const SizedBox(width: 8),
-        _avatar(isUser: true),
       ],
     );
   }

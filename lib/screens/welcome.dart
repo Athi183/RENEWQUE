@@ -142,7 +142,9 @@ class WelcomePage extends StatelessWidget {
 
                       // Guest Link
                       TextButton(
-                        onPressed: () {},
+                        onPressed: () {
+                          Navigator.pushNamed(context, '/risk');
+                        },
                         child: const Text(
                           'Continue as Guest',
                           style: TextStyle(color: Colors.black45),

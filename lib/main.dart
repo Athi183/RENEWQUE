@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'screens/welcome.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'firebase_options.dart'; // 🔥 IMPORTANT
+import 'firebase_options.dart'; 
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:fashion_ai/screens/welcome.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

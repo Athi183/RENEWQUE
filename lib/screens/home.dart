@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'assistant_chat.dart';
+import 'risk.dart';
+import 'selling.dart';
+
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -94,10 +98,7 @@ class _HomePageState extends State<HomePage> {
                   SizedBox(height: 6),
                   Text(
                     "Reduce waste through AI innovation.",
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Color(0xFF9A6C4C),
-                    ),
+                    style: TextStyle(fontSize: 16, color: Color(0xFF9A6C4C)),
                   ),
                 ],
               ),
@@ -111,6 +112,11 @@ class _HomePageState extends State<HomePage> {
               imageUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuDssowVelviqD8JE_EgbYNOSqzKIWzgfaW_9odOo-lk9XddzwUiDTDGYCYQl-6obvynwYvInnAR0f-ZsFDmUUQtXHwFVrKXEw6EqaUydOcHTktXaPQoq_BpldQ1cY78QIIVUeK4IpB1e1Ie1yGBgMG_T6yMYV7gGF0ogiN8F28Mb9O9zCEjE6eGHMxX8GBPid8GVN_28ByXAubwSK7oU8L0kefJu20A8U_XfDjpXM7s09qu_0Kp1hJG-Dhj4JsYnJDiinwxiTxGv4A",
               tag: "AI POWERED",
               buttonText: "Analyze Now",
+              onPressed: () {
+                Navigator.of(
+                  context,
+                ).push(MaterialPageRoute(builder: (_) => const RiskPage()));
+              },
             ),
 
             // Redesign Card
@@ -168,24 +174,34 @@ class _HomePageState extends State<HomePage> {
           height: 70,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              Expanded(child: _NavItem(icon: Icons.home, label: "Home", active: true)),
-              Expanded(child: _NavItem(icon: Icons.checkroom, label: "Wardrobe")),
-              SizedBox(width: 40),
-              Expanded(child: _NavItem(icon: Icons.people, label: "Partners")),
-              Expanded(child: _NavItem(icon: Icons.account_circle, label: "Profile")),
+            children: [
+              Expanded(child: _NavItem(icon: Icons.home,label: "Home",active: true,onTap: () {})),
+              Expanded(child: _NavItem(icon: Icons.checkroom,label: "Wardrobe",onTap: () {
+                    Navigator.push(context,MaterialPageRoute(builder: (context) => const PrelovedPage()));
+                  })),
+              const SizedBox(width: 40),
+              Expanded(child: _NavItem(icon: Icons.people,label: "Partners",onTap: () {
+                    Navigator.push(context,MaterialPageRoute(builder: (context) => const PrelovedPage()));
+                  })),
+              Expanded(child: _NavItem(icon: Icons.account_circle,label: "Profile", onTap: () {})),
             ],
           ),
         ),
       ),
-
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFF602D08),
         elevation: 6,
-        onPressed: () {},
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const AssistantChatPage()),
+          );
+        },
+
         shape: const CircleBorder(),
         child: const Icon(Icons.camera_alt, color: Colors.white, size: 28),
       ),
+
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }
@@ -199,6 +215,7 @@ class _FeatureCard extends StatelessWidget {
   final String imageUrl;
   final String tag;
   final String buttonText;
+  final VoidCallback? onPressed;
 
   const _FeatureCard({
     required this.title,
@@ -206,6 +223,7 @@ class _FeatureCard extends StatelessWidget {
     required this.imageUrl,
     required this.tag,
     required this.buttonText,
+    this.onPressed,
   });
 
   @override
@@ -221,44 +239,64 @@ class _FeatureCard extends StatelessWidget {
             ClipRRect(
               borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
               child: Image.network(
-                imageUrl,
-                height: 180,
-                width: double.infinity,
-                fit: BoxFit.cover,
-              ),
+  imageUrl,
+  height: 180,
+  width: double.infinity,
+  fit: BoxFit.cover,
+  errorBuilder: (context, error, stackTrace) {
+    return Container(
+      height: 180,
+      color: Colors.grey[300],
+      child: const Center(
+        child: Icon(Icons.broken_image, size: 48, color: Colors.grey),
+      ),
+    );
+  },
+),
+
+              
             ),
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title,
-                      style: const TextStyle(
-                          fontSize: 20, fontWeight: FontWeight.bold)),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   const SizedBox(height: 8),
-                  Text(description,
-                      style: const TextStyle(color: Color(0xFF9A6C4C))),
+                  Text(
+                    description,
+                    style: const TextStyle(color: Color(0xFF9A6C4C)),
+                  ),
                   const SizedBox(height: 16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(tag,
-                          style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF602D08))),
+                      Text(
+                        tag,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF602D08),
+                        ),
+                      ),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF602D08),
                         ),
-                        onPressed: () {},
+                        onPressed: onPressed ?? () {},
                         child: Text(buttonText),
-                      )
+                      ),
                     ],
-                  )
+                  ),
                 ],
               ),
-            )
+            ),
           ],
         ),
       ),
@@ -291,11 +329,9 @@ class _InfoCard extends StatelessWidget {
           children: [
             Icon(icon, color: const Color(0xFF602D08)),
             const SizedBox(height: 8),
-            Text(title,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            Text(title,style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
             const SizedBox(height: 4),
-            Text(subtitle,
-                style: const TextStyle(fontSize: 12, color: Color(0xFF9A6C4C))),
+            Text(subtitle,style: const TextStyle(fontSize: 12, color: Color(0xFF9A6C4C))),
           ],
         ),
       ),
@@ -307,24 +343,30 @@ class _NavItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool active;
+  final VoidCallback? onTap;
 
   const _NavItem({
     required this.icon,
     required this.label,
     this.active = false,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, color: const Color(0xFF602D08), size: 24),
-        const SizedBox(height: 4),
-        Text(label, 
-          style: const TextStyle(fontSize: 11, color: Color(0xFF602D08)),
-        ),
-      ],
+    return InkWell(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: const Color(0xFF602D08), size: 24),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 11, color: Color(0xFF602D08)),
+          ),
+        ],
+      ),
     );
   }
 }
