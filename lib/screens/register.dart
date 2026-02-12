@@ -1,28 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'home.dart';
-import 'register.dart';
+import 'login.dart';
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+class RegisterPage extends StatefulWidget {
+  const RegisterPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  State<RegisterPage> createState() => _RegisterPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
 
+  final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   bool _loading = false;
   String _error = '';
 
   @override
   void dispose() {
+    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -31,13 +35,30 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Login")),
+      appBar: AppBar(title: const Text("Register")),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Form(
           key: _formKey,
           child: Column(
             children: [
+              // Name
+              TextFormField(
+                controller: _nameController,
+                decoration: const InputDecoration(
+                  labelText: "Name",
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return "Please enter your name";
+                  }
+                  return null;
+                },
+              ),
+
+              const SizedBox(height: 20),
+
               // Email
               TextFormField(
                 controller: _emailController,
@@ -85,32 +106,33 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
 
+              // Register Button
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   minimumSize: const Size.fromHeight(50),
                 ),
-                onPressed: _loading ? null : _login,
+                onPressed: _loading ? null : _register,
                 child: _loading
                     ? const CircularProgressIndicator(
                         color: Colors.white,
                       )
-                    : const Text("Login"),
+                    : const Text("Register"),
               ),
               const SizedBox(height: 20),
 
 Row(
   mainAxisAlignment: MainAxisAlignment.center,
   children: [
-    const Text("Don't have an account? "),
+    const Text("Already have an account? "),
     TextButton(
       onPressed: () {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const RegisterPage()),
+          MaterialPageRoute(builder: (_) => const LoginPage()),
         );
       },
       child: const Text(
-        "Register",
+        "Login",
         style: TextStyle(fontWeight: FontWeight.bold),
       ),
     ),
@@ -124,7 +146,7 @@ Row(
     );
   }
 
-  Future<void> _login() async {
+  Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
@@ -133,10 +155,23 @@ Row(
     });
 
     try {
-      await _auth.signInWithEmailAndPassword(
+      // Create user in Firebase Auth
+      UserCredential userCredential =
+          await _auth.createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
+
+      User? user = userCredential.user;
+
+      if (user != null) {
+        // Save user data in Firestore
+        await _firestore.collection('users').doc(user.uid).set({
+          'name': _nameController.text.trim(),
+          'email': _emailController.text.trim(),
+          'createdAt': Timestamp.now(),
+        });
+      }
 
       if (!mounted) return;
 
@@ -146,7 +181,7 @@ Row(
       );
     } on FirebaseAuthException catch (e) {
       setState(() {
-        _error = e.message ?? "Login failed";
+        _error = e.message ?? "Registration failed";
       });
     } catch (e) {
       setState(() {

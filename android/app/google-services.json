@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "299394215184",
+    "project_id": "renewque-36524",
+    "storage_bucket": "renewque-36524.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:299394215184:android:cbcb33c48d50d409808995",
+        "android_client_info": {
+          "package_name": "com.example.fashion_ai"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBRMCaSm9MTcFf7Fmu0B55IaqSKRn5cEG0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

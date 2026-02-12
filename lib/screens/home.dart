@@ -1,7 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  String userName = "User";
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserName();
+  }
+
+  Future<void> _loadUserName() async {
+    final uid = _auth.currentUser?.uid;
+    if (uid != null) {
+      final doc = await _firestore.collection('users').doc(uid).get();
+      if (doc.exists) {
+        setState(() {
+          userName = doc.data()?['name'] ?? "User";
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -16,16 +46,16 @@ class HomePage extends StatelessWidget {
         title: Row(
           children: [
             const SizedBox(width: 12),
-            CircleAvatar(
+            const CircleAvatar(
               radius: 20,
               backgroundImage: NetworkImage(
-                "https://lh3.googleusercontent.com/aida-public/AB6AXuCvN50vd08Q8JJlsJOVzKXpX_uLwOMUph1xmnPWxTmj0aqU2rmvtO6zuKF39u89yqJnt03i3Nw-HIxkyp1dMwHGa2dsckEV7Vi1u-JblRBq7QGJwMWG6wya55s-qqkBOLGWjUp9eHSUsjJTZheL02w-1R9_HFIA0ZhmC7-Uu9HI6SDM-EyVZvlOGy3IRq6u7Yi7d3nTK5Lp7RfYzxSekbtg7g7vMle7ojqlmw8dur1tFq-6DYT8DkC-cU_PXapUhUkbafzAkNnQNpc",
+                "https://lh3.googleusercontent.com/aida-public/AB6AXuCvN50vd08Q8JJlsJOVzKXpX_uLwOMUph1xmnPWxTmj0aqU2rmvtO6zuKF39u89yqJnt03i3Nw-HIxkyp1dMwHGa2dsckEV7Vi1u-JblRBq7QGJwMWG6wya55s-qqkBOLGWjUp9eHSUsjJTZheL02w-1R9_HFIA0ZhmC7-Uu9HI6SDM-EyVZvlOGy3IRq6u7Yi7d3nTK5Lp7RfYzxSekbtg7g7vMle7ojqlmw8dur1tFq-6DYT8DkC-cU_PXapUhUkbafzAkNnQNpc", 
               ),
             ),
             const SizedBox(width: 12),
-            const Text(
-              "Welcome, Alex",
-              style: TextStyle(
+            Text(
+              "Welcome, $userName", 
+              style: const TextStyle(
                 color: Color(0xFF1B130D),
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
@@ -78,8 +108,7 @@ class HomePage extends StatelessWidget {
               title: "Risk Analysis",
               description:
                   "Upload a photo to see the environmental impact and durability of your garment using our proprietary waste-risk AI.",
-              imageUrl:
-                  "https://lh3.googleusercontent.com/aida-public/AB6AXuDssowVelviqD8JE_EgbYNOSqzKIWzgfaW_9odOo-lk9XddzwUiDTDGYCYQl-6obvynwYvInnAR0f-ZsFDmUUQtXHwFVrKXEw6EqaUydOcHTktXaPQoq_BpldQ1cY78QIIVUeK4IpB1e1Ie1yGBgMG_T6yMYV7gGF0ogiN8F28Mb9O9zCEjE6eGHMxX8GBPid8GVN_28ByXAubwSK7oU8L0kefJu20A8U_XfDjpXM7s09qu_0Kp1hJG-Dhj4JsYnJDiinwxiTxGv4A",
+              imageUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuDssowVelviqD8JE_EgbYNOSqzKIWzgfaW_9odOo-lk9XddzwUiDTDGYCYQl-6obvynwYvInnAR0f-ZsFDmUUQtXHwFVrKXEw6EqaUydOcHTktXaPQoq_BpldQ1cY78QIIVUeK4IpB1e1Ie1yGBgMG_T6yMYV7gGF0ogiN8F28Mb9O9zCEjE6eGHMxX8GBPid8GVN_28ByXAubwSK7oU8L0kefJu20A8U_XfDjpXM7s09qu_0Kp1hJG-Dhj4JsYnJDiinwxiTxGv4A",
               tag: "AI POWERED",
               buttonText: "Analyze Now",
             ),
@@ -89,8 +118,7 @@ class HomePage extends StatelessWidget {
               title: "Redesign My Clothing",
               description:
                   "Transform your old textiles into something new and ethical. Generate patterns and styles based on your existing wardrobe.",
-              imageUrl:
-                  "https://lh3.googleusercontent.com/aida-public/AB6AXuAA1hxBujIVD3B62kOf0SgmqQbIwlcGXJpJBqbohxo_z-dR5q3I_fthjQvW6Qr7_B7-LK8QzS59Fu2FkzP9h2vRdqXuw5R2P7Mrz3i_EKsJSa-Cozg62ab5n7z0hRdIv26LwaFPxozMC50B27PpSGv3z--gtYHP6ea9wOWYQERDtY_BRAZfeqDrvLNSoBbP9daOnOMpYvwLOR_cDeXi2pCSxFqpgia2MWaib4a7CTM52HGThyyUVniqMCONRNx2_ubb2ZqRX4b1bfY",
+              imageUrl:"https://lh3.googleusercontent.com/aida-public/AB6AXuAA1hxBujIVD3B62kOf0SgmqQbIwlcGXJpJBqbohxo_z-dR5q3I_fthjQvW6Qr7_B7-LK8QzS59Fu2FkzP9h2vRdqXuw5R2P7Mrz3i_EKsJSa-Cozg62ab5n7z0hRdIv26LwaFPxozMC50B27PpSGv3z--gtYHP6ea9wOWYQERDtY_BRAZfeqDrvLNSoBbP9daOnOMpYvwLOR_cDeXi2pCSxFqpgia2MWaib4a7CTM52HGThyyUVniqMCONRNx2_ubb2ZqRX4b1bfY",
               tag: "ECO FRIENDLY",
               buttonText: "Start Redesign",
             ),
@@ -115,15 +143,13 @@ class HomePage extends StatelessWidget {
                   _InfoCard(
                     icon: Icons.analytics,
                     title: "Waste Prediction",
-                    subtitle:
-                        "Predict fabric lifecycle based on fiber quality.",
+                    subtitle: "Predict fabric lifecycle based on fiber quality.",
                   ),
                   SizedBox(width: 12),
                   _InfoCard(
                     icon: Icons.psychology,
                     title: "AI Reasoning",
-                    subtitle:
-                        "Transparent insights for ethical choices.",
+                    subtitle: "Transparent insights for ethical choices.",
                   ),
                 ],
               ),
@@ -142,12 +168,12 @@ class HomePage extends StatelessWidget {
           height: 70,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Expanded(child: _NavItem(icon: Icons.home, label: "Home", active: true)),
-              const Expanded(child: _NavItem(icon: Icons.checkroom, label: "Wardrobe")),
-              const SizedBox(width: 40),
-              const Expanded(child: _NavItem(icon: Icons.people, label: "Partners")),
-              const Expanded(child: _NavItem(icon: Icons.account_circle, label: "Profile")),
+            children: const [
+              Expanded(child: _NavItem(icon: Icons.home, label: "Home", active: true)),
+              Expanded(child: _NavItem(icon: Icons.checkroom, label: "Wardrobe")),
+              SizedBox(width: 40),
+              Expanded(child: _NavItem(icon: Icons.people, label: "Partners")),
+              Expanded(child: _NavItem(icon: Icons.account_circle, label: "Profile")),
             ],
           ),
         ),
@@ -193,8 +219,7 @@ class _FeatureCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(16)),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
               child: Image.network(
                 imageUrl,
                 height: 180,
@@ -264,15 +289,13 @@ class _InfoCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: Color(0xFF602D08)),
+            Icon(icon, color: const Color(0xFF602D08)),
             const SizedBox(height: 8),
             Text(title,
-                style:
-                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
             const SizedBox(height: 4),
             Text(subtitle,
-                style:
-                    const TextStyle(fontSize: 12, color: Color(0xFF9A6C4C))),
+                style: const TextStyle(fontSize: 12, color: Color(0xFF9A6C4C))),
           ],
         ),
       ),
