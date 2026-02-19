@@ -46,16 +46,26 @@ class WelcomePage extends StatelessWidget {
                       const SizedBox(height: 32),
 
                       // Hero Image
-                      Container(
+                      SizedBox(
                         height: 420,
                         width: double.infinity,
-                        decoration: BoxDecoration(
+                        child: ClipRRect(
                           borderRadius: BorderRadius.circular(16),
-                          image: const DecorationImage(
-                            image: NetworkImage(
-                              'https://lh3.googleusercontent.com/aida-public/AB6AXuAxSqwuocViKQ_wW5GJnl3tMTp43XxrGV4tNk4b3Vt0OHjSEJwyzcqai35AbjmFkDx_M-m5A0V9SmOtGxCVW5OYnB-ijvb4Fkgwy8LMLRJsL5NqbZObh15hOd5-wW3WR6Ze7bu_DmeKYWv4fLSZhkzBCExwFgCzdWIWkPE76j6TzLoNC77g3ffZvHP2sL8opcSzYlLHgRNaocpcqRze_PGkvXqESlmpnuLp5dx7YkhGFSUFRP9zrPJ0JeKSA9OzocI_prznbuJzRTw',
-                            ),
-                            fit: BoxFit.cover,
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              return ClipRect(
+                                child: Align(
+                                  alignment: Alignment.center,
+                                  widthFactor: 0.9, // crop left/right edges
+                                  child: Image.asset(
+                                    'assets/images/fashion2.png',
+                                    width: constraints.maxWidth,
+                                    height: 420,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                         ),
                       ),
