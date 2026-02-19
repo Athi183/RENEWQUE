@@ -1,3 +1,4 @@
+import 'package:fashion_ai/screens/register.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'login.dart';
@@ -93,7 +94,7 @@ class WelcomePage extends StatelessWidget {
                             ),
                           ),
                           onPressed: () {
-                             Navigator.push(context,MaterialPageRoute(builder: (context)=>const LoginOrRegisterPage(),
+                             Navigator.push(context,MaterialPageRoute(builder: (context)=>const RegisterPage(),
                             ),
                             );
 
@@ -122,7 +123,7 @@ class WelcomePage extends StatelessWidget {
                             ),
                           ),
                           onPressed: () {
-                            Navigator.push(context,MaterialPageRoute(builder: (context)=>const LoginOrRegisterPage(),
+                            Navigator.push(context,MaterialPageRoute(builder: (context)=>const LoginPage(),
                             ),
                             );
                           },
