@@ -1,0 +1,11 @@
+material,carbon_kg,water_l,energy_mj,waste_kg,impact_score,risk_level
+cotton,5.9,10000,55,0.15,2.7425,Medium
+polyester,9.5,300,125,0.12,3.9965,High
+wool,4.5,6000,63,0.18,2.0745,Low
+silk,6.0,5000,75,0.14,2.6625,Medium
+linen,3.5,7000,45,0.13,1.6775000000000002,Low
+nylon,11.0,400,160,0.11,4.652,High
+denim,6.2,8000,70,0.16,2.8250000000000006,Medium
+velvet,7.5,3500,95,0.14,3.2475,Medium
+chiffon,6.8,3200,88,0.13,2.9480000000000004,Medium
+satin,7.0,3000,92,0.12,3.028,Medium
