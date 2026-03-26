@@ -48,6 +48,7 @@ class RiskPage extends StatelessWidget {
                         child: CircularProgressIndicator(
                           value: 0.5, // Visual for "Medium" risk
                           strokeWidth: 8,
+                          // ignore: deprecated_member_use
                           backgroundColor: const Color(0xFF602D08).withOpacity(0.1),
                           valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF602D08)),
                           strokeCap: StrokeCap.round,

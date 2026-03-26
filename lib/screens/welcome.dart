@@ -2,6 +2,7 @@ import 'package:fashion_ai/screens/register.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'login.dart';
+import 'risk.dart';
 class WelcomePage extends StatelessWidget {
   const WelcomePage({super.key});
 
@@ -153,7 +154,10 @@ class WelcomePage extends StatelessWidget {
                       // Guest Link
                       TextButton(
                         onPressed: () {
-                          Navigator.pushNamed(context, '/risk');
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const RiskPage()),
+                          );
                         },
                         child: const Text(
                           'Continue as Guest',
