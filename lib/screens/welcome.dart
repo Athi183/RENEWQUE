@@ -3,11 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'login.dart';
 import 'risk.dart';
+
 class WelcomePage extends StatelessWidget {
   const WelcomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // Get colors from theme for consistency
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -17,9 +21,23 @@ class WelcomePage extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: const [
-                  Icon(Icons.menu, size: 28),
-                  Icon(Icons.shopping_bag_outlined, size: 28),
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.menu, size: 28),
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Menu coming soon!")),
+                      );
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.shopping_bag_outlined, size: 28),
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Shopping bag coming soon!")),
+                      );
+                    },
+                  ),
                 ],
               ),
             ),
@@ -40,7 +58,7 @@ class WelcomePage extends StatelessWidget {
                           letterSpacing: 4,
                           fontWeight: FontWeight.w400,
                           fontFamily: GoogleFonts.playfairDisplay().fontFamily,
-                          color: Color(0xFF1B130D),
+                          color: colorScheme.onSecondary,
                         ),
                       ),
 
@@ -98,17 +116,11 @@ class WelcomePage extends StatelessWidget {
                         width: double.infinity,
                         height: 56,
                         child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF602D08),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
                           onPressed: () {
-                             Navigator.push(context,MaterialPageRoute(builder: (context)=>const RegisterPage(),
-                            ),
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const RegisterPage()),
                             );
-
                           },
                           child: const Text(
                             'Register',
@@ -127,15 +139,10 @@ class WelcomePage extends StatelessWidget {
                         width: double.infinity,
                         height: 56,
                         child: OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                            backgroundColor: const Color(0xFFF3ECE7),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
                           onPressed: () {
-                            Navigator.push(context,MaterialPageRoute(builder: (context)=>const LoginPage(),
-                            ),
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const LoginPage()),
                             );
                           },
                           child: const Text(
@@ -143,7 +150,6 @@ class WelcomePage extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF1B130D),
                             ),
                           ),
                         ),
@@ -164,6 +170,7 @@ class WelcomePage extends StatelessWidget {
                           style: TextStyle(color: Colors.black45),
                         ),
                       ),
+                      const SizedBox(height: 24),
                     ],
                   ),
                 ),

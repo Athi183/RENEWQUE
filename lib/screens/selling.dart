@@ -11,6 +11,8 @@ class PrelovedPage extends StatefulWidget {
 
 class _PrelovedPageState extends State<PrelovedPage> {
   String selectedCategory = 'All';
+  String selectedCondition = 'All';
+  RangeValues priceRange = const RangeValues(0, 5000);
   final List<String> categories = ['All', 'Tops', 'Bottoms', 'Dresses', 'Outerwear', 'Accessories'];
 
   // Sample data - Replace with actual API data later
@@ -78,10 +80,12 @@ class _PrelovedPageState extends State<PrelovedPage> {
   ];
 
   List<Map<String, dynamic>> get filteredProducts {
-    if (selectedCategory == 'All') {
-      return products;
-    }
-    return products.where((p) => p['category'] == selectedCategory).toList();
+    return products.where((p) {
+      final categoryMatch = selectedCategory == 'All' || p['category'] == selectedCategory;
+      final conditionMatch = selectedCondition == 'All' || p['condition'] == selectedCondition;
+      final priceMatch = p['price'] >= priceRange.start && p['price'] <= priceRange.end;
+      return categoryMatch && conditionMatch && priceMatch;
+    }).toList();
   }
 
   @override
@@ -156,9 +160,9 @@ class _PrelovedPageState extends State<PrelovedPage> {
                       padding: const EdgeInsets.all(16),
                       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 2,
-                        childAspectRatio: 0.65,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
+                        childAspectRatio: 0.75,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
                       ),
                       itemCount: filteredProducts.length,
                       itemBuilder: (context, index) {
@@ -195,16 +199,17 @@ class _PrelovedPageState extends State<PrelovedPage> {
           child: Row(
             children: [
               IconButton(
-                icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF602D08)),
+                icon: const Icon(Icons.arrow_back_ios_new, size: 18, color: Color(0xFF1B130D)),
                 onPressed: () => Navigator.pop(context),
               ),
               const Expanded(
                 child: Text(
-                  'Preloved Market',
+                  'Marketplace',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 24,
+                    fontFamily: 'PlayfairDisplay',
+                    fontWeight: FontWeight.w900,
                     color: Color(0xFF1B130D),
                   ),
                 ),
@@ -402,6 +407,10 @@ class _PrelovedPageState extends State<PrelovedPage> {
   }
 
   void _showFilterBottomSheet() {
+    // Temporary variables to hold state while in the sheet
+    String tempCondition = selectedCondition;
+    RangeValues tempPrice = priceRange;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFFF8F7F6),
@@ -409,94 +418,142 @@ class _PrelovedPageState extends State<PrelovedPage> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Filter Options',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1B130D),
-                ),
-              ),
-              const SizedBox(height: 20),
-              
-              // Condition Filter
-              const Text(
-                'Condition',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF602D08),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: ['All', 'Excellent', 'Good', 'Fair'].map((condition) {
-                  return ChoiceChip(
-                    label: Text(condition),
-                    selected: false,
-                    onSelected: (selected) {},
-                    selectedColor: const Color(0xFF602D08),
-                    backgroundColor: const Color(0xFFF0EDEA),
-                  );
-                }).toList(),
-              ),
-              
-              const SizedBox(height: 20),
-              
-              // Price Range
-              const Text(
-                'Price Range',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF602D08),
-                ),
-              ),
-              const SizedBox(height: 8),
-              RangeSlider(
-                values: const RangeValues(0, 2000),
-                min: 0,
-                max: 5000,
-                divisions: 50,
-                activeColor: const Color(0xFF602D08),
-                labels: const RangeLabels('₹0', '₹2000'),
-                onChanged: (values) {},
-              ),
-              
-              const SizedBox(height: 16),
-              
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF602D08),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Filter Options',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1B130D),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          setModalState(() {
+                            tempCondition = 'All';
+                            tempPrice = const RangeValues(0, 5000);
+                          });
+                        },
+                        child: const Text('Reset', style: TextStyle(color: Color(0xFF9A6C4C))),
+                      ),
+                    ],
                   ),
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                  child: const Text(
-                    'Apply Filters',
+                  const SizedBox(height: 20),
+                  
+                  // Condition Filter
+                  const Text(
+                    'Condition',
                     style: TextStyle(
                       fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF602D08),
                     ),
                   ),
-                ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children: ['All', 'Excellent', 'Good', 'Fair'].map((condition) {
+                      final isSelected = tempCondition == condition;
+                      return ChoiceChip(
+                        label: Text(condition),
+                        selected: isSelected,
+                        onSelected: (selected) {
+                          setModalState(() {
+                            tempCondition = condition;
+                          });
+                        },
+                        selectedColor: const Color(0xFF602D08),
+                        backgroundColor: const Color(0xFFF0EDEA),
+                        labelStyle: TextStyle(
+                          color: isSelected ? Colors.white : const Color(0xFF602D08),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  
+                  const SizedBox(height: 20),
+                  
+                  // Price Range
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Price Range',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF602D08),
+                        ),
+                      ),
+                      Text(
+                        '₹${tempPrice.start.round()} - ₹${tempPrice.end.round()}',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF9A6C4C),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  RangeSlider(
+                    values: tempPrice,
+                    min: 0,
+                    max: 5000,
+                    divisions: 50,
+                    activeColor: const Color(0xFF602D08),
+                    inactiveColor: const Color(0xFFEEDCC8),
+                    labels: RangeLabels('₹${tempPrice.start.round()}', '₹${tempPrice.end.round()}'),
+                    onChanged: (values) {
+                      setModalState(() {
+                        tempPrice = values;
+                      });
+                    },
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF602D08),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          selectedCondition = tempCondition;
+                          priceRange = tempPrice;
+                        });
+                        Navigator.pop(context);
+                      },
+                      child: const Text(
+                        'Apply Filters',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
@@ -526,123 +583,149 @@ class _ProductCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Card(
-        elevation: 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF602D08).withOpacity(0.04),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Product Image
-            Expanded(
-              flex: 3,
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(16),
-                ),
-                child: Stack(
-                  children: [
-                    Image.network(
-                      product['imageUrl'],
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          color: const Color(0xFFF0EDEA),
-                          child: const Icon(
-                            Icons.image_not_supported,
-                            size: 48,
-                            color: Color(0xFF9A6C4C),
+        child: Card(
+          clipBehavior: Clip.antiAlias,
+          color: const Color(0xFFFFFDFB),
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(color: const Color(0xFFEEDCC8).withOpacity(0.3), width: 1),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Product Image
+              Expanded(
+                flex: 3,
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(16),
+                  ),
+                  child: Stack(
+                    children: [
+                      Image.network(
+                        product['imageUrl'],
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: const Color(0xFFF0EDEA),
+                            child: const Icon(
+                              Icons.image_not_supported,
+                              size: 48,
+                              color: Color(0xFF9A6C4C),
+                            ),
+                          );
+                        },
+                      ),
+                      // Condition Badge
+                      Positioned(
+                        top: 10,
+                        right: 10,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
                           ),
-                        );
-                      },
-                    ),
-                    // Condition Badge
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: product['condition'] == 'Excellent'
-                              ? const Color(0xFF9A6C4C)
-                              : const Color(0xFF602D08),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          product['condition'],
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.9),
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            product['condition'].toUpperCase(),
+                            style: const TextStyle(
+                              color: Color(0xFF602D08),
+                              fontSize: 8,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.5,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
 
-            // Product Info
-            Expanded(
-              flex: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          product['name'],
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF1B130D),
+              // Product Info
+              Expanded(
+                flex: 2,
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        product['name'],
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontFamily: 'PlayfairDisplay',
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF1B130D),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Size: ${product['size']}',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontFamily: 'Manrope',
+                          color: Color(0xFF9A6C4C),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const Spacer(),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            '₹${product['price']}',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF602D08),
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Size: ${product['size']}',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: Color(0xFF9A6C4C),
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF602D08).withOpacity(0.05),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.favorite_border,
+                              size: 16,
+                              color: Color(0xFF602D08),
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          '₹${product['price']}',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF602D08),
-                          ),
-                        ),
-                        const Icon(
-                          Icons.favorite_border,
-                          size: 18,
-                          color: Color(0xFF602D08),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
