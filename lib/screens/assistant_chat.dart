@@ -22,7 +22,11 @@ class _AssistantChatPageState extends State<AssistantChatPage> {
   static const userBubbleColor = Color(0xFF602D08);
   static const darkText = Color(0xFF1B130D);
 
-  final String _backendBaseUrl = "http://127.0.0.1:8080";
+  // ── Correct dynamic URL for backend ──
+  static const String _kLanIp = '10.52.13.34';
+  final String _backendBaseUrl = (const bool.fromEnvironment('dart.library.js_util'))
+      ? 'http://localhost:8000'
+      : 'http://$_kLanIp:8000';
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final List<Map<String, dynamic>> messages = [
