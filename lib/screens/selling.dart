@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'home.dart';
 import 'partner_boutiques.dart';
+import 'profile.dart';
 
 class PrelovedPage extends StatefulWidget {
   const PrelovedPage({super.key});
@@ -302,9 +303,11 @@ class _PrelovedPageState extends State<PrelovedPage> {
             ),
             Expanded(
               child: _NavItem(
-                icon: Icons.account_circle,
+                icon: Icons.account_circle_rounded,
                 label: "Profile",
-                onTap: () => _showComingSoon(context),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const ProfilePage()),
+                ),
               ),
             ),
           ],
@@ -1771,11 +1774,19 @@ class _NavItem extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: const Color(0xFF602D08), size: 24),
+          Icon(
+            icon,
+            color: active ? const Color(0xFF602D08) : const Color(0xFF9A6C4C),
+            size: 24,
+          ),
           const SizedBox(height: 4),
           Text(
             label,
-            style: const TextStyle(fontSize: 11, color: Color(0xFF602D08)),
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: active ? FontWeight.bold : FontWeight.normal,
+              color: active ? const Color(0xFF602D08) : const Color(0xFF9A6C4C),
+            ),
           ),
         ],
       ),

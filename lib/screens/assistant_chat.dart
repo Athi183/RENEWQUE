@@ -14,89 +14,123 @@ class AssistantChatPage extends StatefulWidget {
 }
 
 class _AssistantChatPageState extends State<AssistantChatPage> {
-  static const earthBrown = Color(0xFF221810);
-  static const clay = Color(0xFF9A6C4C);
-  static const sageLight = Color(0xFFE2ECE2);
-  static const beigeLight = Color(0xFFF5F0E6);
-  static const String _backendBaseUrl = "http://127.0.0.1:8080";
+  static const primaryColor = Color(0xFF602D08);
+  static const secondaryColor = Color(0xFF9A6C4C);
+  static const accentColor = Color(0xFF388E3C);
+  static const bgColor = Color(0xFFF8F7F6);
+  static const aiBubbleColor = Color(0xFFFFFDFB);
+  static const userBubbleColor = Color(0xFF602D08);
+  static const darkText = Color(0xFF1B130D);
 
+  final String _backendBaseUrl = "http://127.0.0.1:8080";
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  final List<Map<String, dynamic>> messages = [];
+  final List<Map<String, dynamic>> messages = [
+    {
+      "role": "ai",
+      "text": "Hello! I'm your RenewQue Assistant. I can help you redesign old clothes, check fabric sustainability, or find the best eco-friendly boutiques. What's on your mind today? ✨",
+    }
+  ];
   File? selectedImage;
   bool _isLoading = false;
-
   final ImagePicker _picker = ImagePicker();
 
   Future<void> pickImage() async {
     showModalBottomSheet(
       context: context,
-      builder: (context) => SafeArea(
-        child: Wrap(
-          children: [
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text("Gallery"),
-              onTap: () async {
-                final XFile? image = await _picker.pickImage(
-                  source: ImageSource.gallery,
-                );
-                if (image != null) {
-                  setState(() {
-                    selectedImage = File(image.path);
-                  });
-                }
-                // ignore: use_build_context_synchronously
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.camera_alt),
-              title: const Text("Camera"),
-              onTap: () async {
-                final XFile? image = await _picker.pickImage(
-                  source: ImageSource.camera,
-                );
-                if (image != null) {
-                  setState(() {
-                    selectedImage = File(image.path);
-                  });
-                }
-                // ignore: use_build_context_synchronously
-                Navigator.pop(context);
-              },
-            ),
-          ],
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 20),
+                child: Text("Attach Reference", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: darkText)),
+              ),
+              ListTile(
+                leading: const CircleAvatar(backgroundColor: Color(0xFFF0EDEA), child: Icon(Icons.photo_library, color: primaryColor)),
+                title: const Text("Gallery", style: TextStyle(fontWeight: FontWeight.w600)),
+                onTap: () async {
+                  final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+                  if (image != null) setState(() => selectedImage = File(image.path));
+                  if (context.mounted) Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                leading: const CircleAvatar(backgroundColor: Color(0xFFF0EDEA), child: Icon(Icons.camera_alt, color: primaryColor)),
+                title: const Text("Camera", style: TextStyle(fontWeight: FontWeight.w600)),
+                onTap: () async {
+                  final XFile? image = await _picker.pickImage(source: ImageSource.camera);
+                  if (image != null) setState(() => selectedImage = File(image.path));
+                  if (context.mounted) Navigator.pop(context);
+                },
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Future<void> sendMessage() async {
-    print("DEBUG: sendMessage() triggered");
-    if (_controller.text.trim().isEmpty && selectedImage == null) {
-      print("DEBUG: Both text and image are empty. Returning.");
-      return;
-    }
-    if (_isLoading) return; 
+  Future<void> sendMessage({String? customText}) async {
+    final textToSend = customText ?? _controller.text.trim();
+    if (textToSend.isEmpty && selectedImage == null) return;
+    if (_isLoading) return;
 
-    final userText = _controller.text.trim();
     final image = selectedImage;
-    print("DEBUG: User text: '$userText', Image is null: ${image == null}");
-
     setState(() {
       _isLoading = true;
       messages.add({
         "role": "user",
-        "text": userText,
+        "text": textToSend,
         "localImage": image?.path,
       });
     });
 
     _controller.clear();
     setState(() => selectedImage = null);
+    _scrollToBottom();
 
-    // scroll to bottom
+    try {
+      if (image != null) {
+        final result = await redesignImage(image, textToSend);
+        setState(() {
+          _isLoading = false;
+          messages.add({
+            "role": "ai",
+            "text": result["groq_advice"] ?? "Here is your redesigned outfit concept!",
+            "imageBase64": result["image_base64"],
+            "imageUrl": result["image_url"],
+          });
+        });
+      } else {
+        final aiText = await GroqService.sendMessage(text: textToSend);
+        setState(() {
+          _isLoading = false;
+          messages.add({
+            "role": "ai",
+            "text": aiText,
+          });
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        messages.add({"role": "ai", "text": "❌ Something went wrong. Let me try again later."});
+      });
+    }
+    _scrollToBottom();
+  }
+
+  void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
@@ -106,89 +140,24 @@ class _AssistantChatPageState extends State<AssistantChatPage> {
         );
       }
     });
-
-    try {
-      if (image != null) {
-        print("DEBUG: Sending to /redesign...");
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("✨ Redesigning outfit... please wait.")),
-        );
-        final result = await redesignImage(image, userText);
-        setState(() {
-          _isLoading = false;
-          messages.add({
-            "role": "ai",
-            "text": result["groq_advice"] ?? "Here is your redesigned outfit!",
-            "imageBase64": result["image_base64"],
-            "imageUrl": result["image_url"],
-            "similarImages": const <Map<String, dynamic>>[],
-          });
-        });
-      } else {
-        // ── Text only: existing Groq chat ───────────────────────────────
-        final aiText = await GroqService.sendMessage(text: userText);
-        setState(() {
-          _isLoading = false;
-          messages.add({
-            "role": "ai",
-            "text": aiText,
-            "imageUrl": null,
-            "similarImages": const <Map<String, dynamic>>[],
-          });
-        });
-      }
-    } catch (e) {
-      print("DEBUG: Caught error: $e");
-      setState(() {
-        _isLoading = false;
-        messages.add({"role": "ai", "text": "❌ Error: ${e.toString()}"}); 
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("❌ Error: $e"), backgroundColor: Colors.red),
-      );
-    }
   }
 
   Future<Map<String, Object?>> redesignImage(File imageFile, String userPrompt) async {
     final url = "$_backendBaseUrl/redesign";
-    print("📤 Sending redesign request to: $url");
-    print("📁 Image path: ${imageFile.path}");
-    print("💬 Prompt: $userPrompt");
-
     try {
-      var request = http.MultipartRequest(
-        "POST",
-        Uri.parse("$_backendBaseUrl/redesign"),
-      );
-
-      request.files.add(
-        await http.MultipartFile.fromPath("file", imageFile.path),
-      );
-      // Pass the user's redesign idea as a form field
-      request.fields["prompt"] = userPrompt.isEmpty
-          ? "redesign this outfit in a modern sustainable style"
-          : userPrompt;
-
+      var request = http.MultipartRequest("POST", Uri.parse(url));
+      request.files.add(await http.MultipartFile.fromPath("file", imageFile.path));
+      request.fields["prompt"] = userPrompt.isEmpty ? "redesign this outfit sustainably" : userPrompt;
       var response = await request.send().timeout(const Duration(seconds: 120));
-      print("📨 Response status: ${response.statusCode}");
-
       var responseData = await response.stream.bytesToString();
-      print("📄 Response body: $responseData");
       final json = jsonDecode(responseData);
-
-      if (response.statusCode != 200) {
-        throw Exception(json["detail"] ?? "Redesign failed (${response.statusCode})");
-      }
-
+      if (response.statusCode != 200) throw Exception(json["detail"] ?? "Redesign failed");
       return {
-        "image_base64":    json["image_base64"],
-        "image_url":       json["image_url"],
-        "groq_advice":     json["groq_advice"],
-        "gemini_analysis": json["gemini_analysis"],
-        "sd_prompt":       json["sd_prompt"],
+        "image_base64": json["image_base64"],
+        "image_url": json["image_url"],
+        "groq_advice": json["groq_advice"],
       };
     } catch (e) {
-      print("❌ Error in redesignImage: $e");
       rethrow;
     }
   }
@@ -196,353 +165,278 @@ class _AssistantChatPageState extends State<AssistantChatPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
-        children: [
-          _topBar(),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: messages.length,
-              itemBuilder: (context, index) {
-                final msg = messages[index];
-
-                if (msg["role"] == "user") {
-                  return _userMessage(
-                    msg["text"] ?? "",
-                    localImage: msg["localImage"],
-                  );
-                } else {
-                  return _aiMessage(
-                    msg["text"] ?? "",
-                    imageBase64: msg["imageBase64"] as String?,
-                    imageUrl: msg["imageUrl"] as String?,
-                    similarImages: (msg["similarImages"] as List<dynamic>?)
-                        ?.whereType<Map<String, dynamic>>()
-                        .toList(),
-                  );
-                }
-              },
-            ),
-          ),
-          if (selectedImage != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Stack(
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.file(
-                          selectedImage!,
-                          width: 120,
-                          height: 120,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                      Positioned(
-                        top: -6,
-                        right: -6,
-                        child: IconButton(
-                          icon: const Icon(Icons.cancel, color: Colors.red),
-                          onPressed: () {
-                            setState(() {
-                              selectedImage = null;
-                            });
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+      backgroundColor: bgColor,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _topBar(),
+            Expanded(
+              child: ListView.builder(
+                controller: _scrollController,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                physics: const BouncingScrollPhysics(),
+                itemCount: messages.length + (_isLoading ? 1 : 0),
+                itemBuilder: (context, index) {
+                  if (index == messages.length) return _typingIndicator();
+                  final msg = messages[index];
+                  return msg["role"] == "user" ? _userMessage(msg) : _aiMessage(msg);
+                },
               ),
             ),
-
-          _composer(),
-          _bottomActions(),
-        ],
+            _inputArea(),
+          ],
+        ),
       ),
     );
   }
 
-  // 🔝 Top Bar
   Widget _topBar() {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: clay.withValues(alpha: 0.4))),
+        color: Colors.white,
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 2))],
       ),
       child: Row(
-        children: const [
-          Icon(Icons.arrow_back_ios),
-          Spacer(),
-          Column(
-            children: [
-              Text(
-                "RenewQue Assistant",
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              Text(
-                "Online Concierge",
-                style: TextStyle(fontSize: 11, color: clay),
-              ),
-            ],
+        children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: primaryColor),
+            onPressed: () => Navigator.pop(context),
           ),
-          Spacer(),
-          Icon(Icons.info_outline),
+          const SizedBox(width: 8),
+          const CircleAvatar(
+            backgroundColor: primaryColor,
+            radius: 20,
+            child: Icon(Icons.eco_rounded, color: Colors.white, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "RenewQue Assistant",
+                  style: TextStyle(fontFamily: 'PlayfairDisplay', fontWeight: FontWeight.w900, fontSize: 18, color: darkText),
+                ),
+                Row(
+                  children: [
+                    Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle)),
+                    const SizedBox(width: 6),
+                    const Text("Online Concierge", style: TextStyle(fontSize: 11, color: secondaryColor, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          IconButton(icon: const Icon(Icons.more_vert, color: secondaryColor), onPressed: () {}),
         ],
       ),
     );
   }
 
-  Widget _aiMessage(
-    String text, {
-    String? imageBase64,
-    String? imageUrl,
-    List<Map<String, dynamic>>? similarImages,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _avatar(),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Container(
-                padding: const EdgeInsets.all(14),
-                constraints: const BoxConstraints(maxWidth: 280),
-                decoration: BoxDecoration(
-                  color: sageLight,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Text(text),
+  Widget _userMessage(Map<String, dynamic> msg) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          if (msg["localImage"] != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: Image.file(File(msg["localImage"]), width: 220, height: 220, fit: BoxFit.cover),
               ),
             ),
-          ],
-        ),
-        if (imageBase64 != null && imageBase64.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(left: 40, top: 10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text("✨ Redesigned Outfit",
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                const SizedBox(height: 6),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: Image.memory(
-                    base64Decode(imageBase64),
-                    width: 220,
-                    height: 290,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _imageFallback(),
-                  ),
+          if (msg["text"] != null && msg["text"].isNotEmpty)
+            Container(
+              padding: const EdgeInsets.all(16),
+              constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.7),
+              decoration: const BoxDecoration(
+                color: userBubbleColor,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(24),
+                  topRight: Radius.circular(24),
+                  bottomLeft: Radius.circular(24),
+                  bottomRight: Radius.circular(4),
                 ),
-              ],
+              ),
+              child: Text(msg["text"], style: const TextStyle(color: Colors.white, fontSize: 15, height: 1.4)),
             ),
-          )
-        else if (imageUrl != null && imageUrl.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(left: 40, top: 10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text("✨ Redesigned Outfit",
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                const SizedBox(height: 6),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: Image.network(
-                    imageUrl,
-                    width: 220,
-                    height: 290,
-                    fit: BoxFit.cover,
-                    headers: const {
-                      "User-Agent": "Mozilla/5.0 (Android 14; Mobile; rv:109.0) Gecko/124.0 Firefox/124.0",
-                    },
-                    loadingBuilder: (_, child, progress) => progress == null
-                        ? child
-                        : Container(
-                            width: 220,
-                            height: 290,
-                            color: const Color(0xFFEDE5DE),
-                            alignment: Alignment.center,
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: const [
-                                CircularProgressIndicator(color: clay),
-                                SizedBox(height: 8),
-                                Text("Generating outfit...", style: TextStyle(fontSize: 12, color: clay)),
-                              ],
-                            ),
-                          ),
-                    errorBuilder: (_, __, ___) => GestureDetector(
-                      onTap: () async {
-                        try {
-                          await launchUrl(Uri.parse(imageUrl), mode: LaunchMode.externalApplication);
-                        } catch (e) {
-                          print("❌ $e");
-                        }
-                      },
-                      child: Container(
-                        width: 220,
-                        height: 80,
-                        decoration: BoxDecoration(color: clay, borderRadius: BorderRadius.circular(14)),
-                        alignment: Alignment.center,
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.open_in_browser, color: Colors.white),
-                            SizedBox(width: 8),
-                            Text("👗 View Redesigned Outfit", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 
-  Widget _recommendationCard({
-    required String name,
-    required double score,
-    String? imageUrl,
-  }) {
-    return Container(
-      width: 150,
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
+  Widget _aiMessage(Map<String, dynamic> msg) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: imageUrl != null && imageUrl.isNotEmpty
-                  ? Image.network(
-                      imageUrl,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _imageFallback(),
-                    )
-                  : _imageFallback(),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            "${(score * 100).toStringAsFixed(1)}% match",
-            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
-          ),
-          Text(
-            name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 11, color: clay),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _imageFallback() {
-    return Container(
-      color: const Color(0xFFEDE5DE),
-      alignment: Alignment.center,
-      child: const Icon(Icons.image_not_supported_outlined, color: clay),
-    );
-  }
-
-  Widget _userMessage(String text, {String? localImage}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        if (localImage != null)
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.file(
-              File(localImage),
-              width: 160,
-              height: 160,
-              fit: BoxFit.cover,
-            ),
-          ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(14),
-              constraints: const BoxConstraints(maxWidth: 280),
-              decoration: BoxDecoration(
-                color: beigeLight,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Text(text),
-            ),
-            const SizedBox(width: 8),
-            _avatar(isUser: true),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _avatar({bool isUser = false}) {
-    return CircleAvatar(
-      radius: 18,
-      backgroundColor: isUser ? clay : earthBrown,
-      child: Icon(
-        isUser ? Icons.person : Icons.eco,
-        size: 18,
-        color: Colors.white,
-      ),
-    );
-  }
-
-  Widget _composer() {
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Row(
-        children: [
-          IconButton(
-            icon: const Icon(Icons.add_circle_outline, color: clay),
-            onPressed: pickImage,
-          ),
-          Expanded(
-            child: TextField(
-              controller: _controller,
-              decoration: InputDecoration(
-                hintText: "Type your question...",
-                filled: true,
-                fillColor: beigeLight,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide.none,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              const CircleAvatar(radius: 14, backgroundColor: Color(0xFFEEDCC8), child: Icon(Icons.eco_rounded, size: 14, color: primaryColor)),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: aiBubbleColor,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(24),
+                      topRight: Radius.circular(24),
+                      bottomRight: Radius.circular(24),
+                      bottomLeft: Radius.circular(4),
+                    ),
+                    border: Border.all(color: const Color(0xFFF0EDEA)),
+                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
+                  ),
+                  child: Text(msg["text"], style: const TextStyle(color: darkText, fontSize: 15, height: 1.4)),
                 ),
               ),
-            ),
+            ],
           ),
-          IconButton(
-            icon: const Icon(Icons.send, color: clay),
-            onPressed: sendMessage,
+          if (msg["imageBase64"] != null || msg["imageUrl"] != null)
+            Padding(
+              padding: const EdgeInsets.only(left: 36, top: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("✨ Redesigned Outfit Concept", style: TextStyle(fontWeight: FontWeight.w900, color: secondaryColor, fontSize: 13)),
+                  const SizedBox(height: 8),
+                  GestureDetector(
+                    onTap: () {
+                      if (msg["imageUrl"] != null) launchUrl(Uri.parse(msg["imageUrl"]), mode: LaunchMode.externalApplication);
+                    },
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(28),
+                      child: msg["imageBase64"] != null
+                          ? Image.memory(base64Decode(msg["imageBase64"]), width: 250, height: 320, fit: BoxFit.cover)
+                          : Image.network(msg["imageUrl"], width: 250, height: 320, fit: BoxFit.cover),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _typingIndicator() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24),
+      child: Row(
+        children: [
+          const CircleAvatar(radius: 14, backgroundColor: Color(0xFFEEDCC8), child: Icon(Icons.eco_rounded, size: 14, color: primaryColor)),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(color: aiBubbleColor, borderRadius: BorderRadius.circular(20)),
+            child: Row(
+              children: [
+                const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2, color: primaryColor)),
+                const SizedBox(width: 10),
+                Text("RenewQue is thinking...", style: TextStyle(fontSize: 12, color: secondaryColor, fontWeight: FontWeight.bold)),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _bottomActions() {
-    return const SizedBox(height: 10);
+  Widget _inputArea() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
+      child: Column(
+        children: [
+          if (selectedImage != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                children: [
+                  Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Image.file(selectedImage!, width: 80, height: 80, fit: BoxFit.cover),
+                      ),
+                      Positioned(
+                        top: 2,
+                        right: 2,
+                        child: GestureDetector(
+                          onTap: () => setState(() => selectedImage = null),
+                          child: const CircleAvatar(radius: 10, backgroundColor: Colors.red, child: Icon(Icons.close, size: 12, color: Colors.white)),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(child: Text("Image ready for redesign ✨", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: secondaryColor))),
+                ],
+              ),
+            )
+          else
+            _quickActions(),
+          Row(
+            children: [
+              IconButton(icon: const Icon(Icons.add_circle_outline_rounded, color: primaryColor, size: 28), onPressed: pickImage),
+              Expanded(
+                child: TextField(
+                  controller: _controller,
+                  style: const TextStyle(fontSize: 15),
+                  onSubmitted: (_) => sendMessage(),
+                  decoration: InputDecoration(
+                    hintText: "Type your query...",
+                    filled: true,
+                    fillColor: bgColor,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(28), borderSide: BorderSide.none),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () => sendMessage(),
+                child: const CircleAvatar(radius: 24, backgroundColor: primaryColor, child: Icon(Icons.send_rounded, color: Colors.white, size: 20)),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _quickActions() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          _actionChip("Fabric Check 🧵", "Tell me about sustainable fabrics for summer."),
+          _actionChip("Redesign ✨", "I have an old denim jacket. Ideas?"),
+          _actionChip("Trends 📈", "What are current eco-fashion trends?"),
+        ],
+      ),
+    );
+  }
+
+  Widget _actionChip(String label, String fullText) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: ActionChip(
+        label: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+        backgroundColor: secondaryColor.withOpacity(0.05),
+        side: BorderSide(color: secondaryColor.withOpacity(0.2)),
+        onPressed: () => sendMessage(customText: fullText),
+      ),
+    );
   }
 }

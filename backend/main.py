@@ -171,6 +171,7 @@ def analyze_image_with_gemini(image_bytes: bytes) -> str:
         "gemini-1.5-pro",
     ]
     last_error = None
+    # 1. Try known stable models first
     for model_name in potential_models:
         try:
             print(f"🤖 Trying Gemini model: {model_name}...")
@@ -179,10 +180,13 @@ def analyze_image_with_gemini(image_bytes: bytes) -> str:
             response = model.generate_content([
                 img,
                 (
-                    "You are a fashion expert. Analyze this clothing item and describe it "
-                    "in one short paragraph covering: garment type, fabric/material, dominant colors, "
-                    "pattern (solid/striped/floral/etc.), fit/silhouette, and overall style. "
-                    "Be specific and concise. Return only the description, no extra text."
+                    "You are a high-end luxury fashion consultant. Analyze this garment with extreme precision. "
+                    "Provide a 'Hyper-Description' covering:\n"
+                    "1. GARMENT DNA: Exact type, fit, and silhouette.\n"
+                    "2. MATERIAL & TEXTURE: Be specific (e.g., ribbed georgette, slubby linen).\n"
+                    "3. COLOR PALETTE: Identify primary and secondary shades.\n"
+                    "4. HARDWARE & DETAILS: Mention buttons, trim, stitching.\n"
+                    "Return only this detailed structural analysis in 2-3 concise paragraphs."
                 )
             ])
             return response.text.strip()
@@ -191,28 +195,32 @@ def analyze_image_with_gemini(image_bytes: bytes) -> str:
             last_error = e
             continue
 
-    # Final attempt: List all available models and try the first one that supports generateContent
+    # 2. Smart Discovery: Find ANY working model if the above fail
     try:
-        print("🔍 Searching for ANY available model...")
-        available = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-        print(f"📋 Found available models: {available}")
-        if available:
-            # Use the first one (usually includes 'models/' prefix)
-            model_name = available[0].replace("models/", "")
-            print(f"🚀 Final attempt with discovered model: {model_name}")
-            model = genai.GenerativeModel(model_name)
-            response = model.generate_content([
-                 Image.open(io.BytesIO(image_bytes)).convert("RGB"),
-                 "Describe this garment simply."
-            ])
-            return response.text.strip()
+        available = [m.name.replace("models/", "") for m in genai.list_models() 
+                     if 'generateContent' in m.supported_generation_methods]
+        
+        # Prioritize 'flash' models in the discovered list
+        discovered = sorted(available, key=lambda x: 'flash' not in x.lower())
+        
+        for model_name in discovered:
+            if model_name in potential_models: continue
+            try:
+                print(f"🚀 Trying discovered model: {model_name}")
+                model = genai.GenerativeModel(model_name)
+                response = model.generate_content([
+                    Image.open(io.BytesIO(image_bytes)).convert("RGB"),
+                    "Describe this garment simply including material and color."
+                ])
+                return response.text.strip()
+            except:
+                continue
     except:
         pass
 
     if last_error:
         raise last_error
     return "a stylish garment"
-
 
 
 # ─────────────────────────────────────────────
@@ -229,11 +237,15 @@ def build_sd_prompt_with_groq(gemini_description: str, user_idea: str) -> str:
         )
 
     system_msg = (
-        "You are a Stable Diffusion prompt engineer for fashion. "
-        "Given a garment description and a redesign idea, write a SHORT text-to-image prompt (max 60 words). "
-        "The garment MUST be displayed on a professional white or wooden fashion mannequin. "
-        "Include garment type, fabric, colors, style. End with 'fashion photography, studio lighting'. "
-        "Return ONLY the prompt, no extra text."
+        "You are a Stable Diffusion prompt engineer for high-end fashion REDESIGN. "
+        "Your goal is to produce a HYPER-REALISTIC visual description of the final redesign. NO narrative text.\n\n"
+        "MANDATORY TEMPLATE (Follow this exactly):\n"
+        "1. START WITH: '[Color] [Material] [Exact Garment Type] on a professional wooden mannequin.'\n"
+        "2. GARMENT TYPE: Always use the exact name from the 'Redesign idea' (e.g., if it says 'shirt', the prompt starts with 'A shirt').\n"
+        "3. MICRO-DETAILS: Include details like fine stitching, fabric weight, natural draping, and texture depth to increase realism.\n"
+        "4. NO PEOPLE: Explicitly state 'No human models, zero humans'.\n"
+        "5. STAGING: 'Displayed in a luxury 8k fashion studio with neutral grey background and professional high-end boutique lighting.'\n"
+        "MAX 75 WORDS. Return ONLY the direct visual prompt."
     )
 
     chat = groq_client.chat.completions.create(

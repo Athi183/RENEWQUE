@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'assistant_chat.dart';
 import 'partner_boutiques.dart';
+import 'profile.dart';
 import 'risk.dart';
 import 'selling.dart';
 
@@ -437,9 +438,11 @@ class _HomePageState extends State<HomePage> {
                                   const PartnerBoutiquesPage())))),
               Expanded(
                   child: _NavItem(
-                      icon: Icons.account_circle,
+                      icon: Icons.account_circle_rounded,
                       label: "Profile",
-                      onTap: _confirmLogout)),
+                      onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                              builder: (_) => const ProfilePage())))),
             ],
           ),
         ),

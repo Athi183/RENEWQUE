@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'home.dart';
 import 'selling.dart';
+import 'profile.dart';
 
 class PartnerBoutiquesPage extends StatefulWidget {
   const PartnerBoutiquesPage({super.key});
@@ -400,7 +401,7 @@ class _PartnerBoutiquesPageState extends State<PartnerBoutiquesPage> {
             _navItem(Icons.checkroom_rounded, "Market", onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const PrelovedPage()))),
             const SizedBox(width: 40),
             _navItem(Icons.people_rounded, "Partners", active: true),
-            _navItem(Icons.account_circle_rounded, "Profile", onTap: () {}),
+            _navItem(Icons.account_circle_rounded, "Profile", onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ProfilePage()))),
           ],
         ),
       ),
