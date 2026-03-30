@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
+import '../services/groq_api.dart';
 
 // ─────────────────────────────────────────────────────────────────
 //  API URL — automatically picks the right address:
@@ -18,17 +19,17 @@ const String _kApiBase = kIsWeb
 // ─────────────────────────────────────────────────────────────────
 //  Colour palette  (eco-theme)
 // ─────────────────────────────────────────────────────────────────
-const _kBg       = Color(0xFFF0F5F1);
+const _kBg       = Color(0xFFF8F7F6);
 const _kSurface  = Color(0xFFFFFFFF);
-const _kPrimaryG = Color(0xFF2D6A4F); // deep forest green
-const _kAccentG  = Color(0xFF52B788); // fresh green
-const _kAccentB  = Color(0xFF1565C0); // water blue
-const _kEarth    = Color(0xFF8B5E3C); // earth / carbon
-const _kLow      = Color(0xFF40916C);
-const _kMedium   = Color(0xFFF4A261);
-const _kHigh     = Color(0xFFE63946);
-const _kText     = Color(0xFF1B2D27);
-const _kSubtext  = Color(0xFF6B8C7A);
+const _kPrimaryG = Color(0xFF602D08); // matched to brand brown
+const _kAccentG  = Color(0xFF8B4513); // earth / clay
+const _kAccentB  = Color(0xFF704214); // muted bronze
+const _kEarth    = Color(0xFF4E342E); // deep soil
+const _kLow      = Color(0xFF2D6A4F); // keep green for safety
+const _kMedium   = Color(0xFFD4813E); // earthy orange
+const _kHigh     = Color(0xFFB03A2E); // muted deep red
+const _kText     = Color(0xFF1B130D);
+const _kSubtext  = Color(0xFF795548);
 
 class RiskPage extends StatefulWidget {
   const RiskPage({super.key});
@@ -50,6 +51,9 @@ class _RiskPageState extends State<RiskPage> with TickerProviderStateMixin {
   double _waste     = 0;
   double _eis       = 0;
   String _riskLevel = '';
+  String? _aiExplanation;
+  List<dynamic> _confidences = [];
+  String _detectedFabric = '';
 
   // ── Animation ────────────────────────────────────────────────────
   late AnimationController _fadeController;
@@ -126,9 +130,32 @@ class _RiskPageState extends State<RiskPage> with TickerProviderStateMixin {
           _waste     = (data['Waste']   as num).toDouble();
           _eis       = (data['EIS']     as num).toDouble().clamp(0.0, 1.0);
           _riskLevel = data['Risk_Level'] as String;
+          _aiExplanation = data['explanation'] as String?;
+          _confidences   = data['confidence_breakdown'] as List<dynamic>? ?? [];
           _hasResult = true;
           _loading   = false;
         });
+
+        // --- Fetch professional XAI Explanation from Groq ---
+        try {
+          final prompt = "Explain the sustainability risk assessment for a garment with these metrics: "
+              "Carbon: ${_carbon.toStringAsFixed(2)}kg CO2, "
+              "Water: ${_water.toStringAsFixed(1)}L, "
+              "Waste: ${_waste.toStringAsFixed(3)}kg, "
+              "EIS Score: ${_eis.toStringAsFixed(2)}, "
+              "Risk Level: $_riskLevel. "
+              "STRICT RULE: Do NOT mention any specific material, fabric type, or fiber names (like Polyester, Cotton, Linen, etc). "
+              "Focus only on the environmental impact of these specific numbers. Keep it to 2-3 sentences.";
+          
+          final xaiResponse = await GroqService.sendMessage(text: prompt);
+          setState(() {
+            _aiExplanation = xaiResponse;
+          });
+        } catch (e) {
+          debugPrint("XAI Error: $e");
+          // Fallback to local explanation if Groq fails
+        }
+
         _fadeController.forward(from: 0);
         _gaugeController.forward(from: 0);
       } else {
@@ -235,7 +262,7 @@ class _RiskPageState extends State<RiskPage> with TickerProviderStateMixin {
                       fontSize: 15,
                       color: _kText)),
               const SizedBox(height: 6),
-              Text('Our AI is computing your impact',
+              Text('Verifying fabric fibers and texture',
                   style: GoogleFonts.manrope(fontSize: 12, color: _kSubtext)),
             ]),
           ),
@@ -262,8 +289,17 @@ class _RiskPageState extends State<RiskPage> with TickerProviderStateMixin {
               child: Column(children: [
                 _riskBadge(),
                 const SizedBox(height: 20),
-                _impactCard(),
                 const SizedBox(height: 20),
+                _explanationCard(),
+                const SizedBox(height: 24),
+                FadeTransition(
+                  opacity: CurvedAnimation(
+                    parent: _fadeController,
+                    curve: const Interval(0.8, 1.0, curve: Curves.easeOut),
+                  ),
+                  child: _alternativeComparison(),
+                ),
+                const SizedBox(height: 24),
                 _sectionLabel('SUSTAINABILITY METRICS'),
                 const SizedBox(height: 12),
                 _metricsRow(),
@@ -437,11 +473,11 @@ class _RiskPageState extends State<RiskPage> with TickerProviderStateMixin {
             borderRadius: BorderRadius.circular(16),
             boxShadow: _imageBytes == null
                 ? []
-                : const [
+                : [
                     BoxShadow(
-                        color: Color(0x662D6A4F),
+                        color: _kPrimaryG.withAlpha(80),
                         blurRadius: 20,
-                        offset: Offset(0, 8)),
+                        offset: const Offset(0, 8)),
                   ],
           ),
           child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -809,11 +845,208 @@ class _RiskPageState extends State<RiskPage> with TickerProviderStateMixin {
       ];
     }
     return [
-      '🚫 Avoid fast fashion — synthetic fabrics are the largest textile pollutant.',
-      '💡 Switch to organic cotton, linen, or Tencel where possible.',
+      '🚫 Avoid fast fashion — certain synthetic treatments are major textile pollutants.',
+      '💡 Switch to eco-certified or low-impact fabrics where possible.',
       '🔃 Explore upcycling this garment into accessories to reduce waste.',
       '📊 Track your full wardrobe carbon footprint with our dashboard.',
     ];
+  }
+
+  String _generateExplanation() {
+    List<String> reasons = [];
+
+    if (_carbon > 7) reasons.add("high carbon footprint");
+    if (_water > 5000) reasons.add("high water usage");
+    if (_waste > 0.15) reasons.add("high waste generation");
+
+    if (reasons.isEmpty) {
+      return "Low environmental impact with minimal resource usage.";
+    }
+
+    // Join reasons
+    final explanation = reasons.join(', ');
+    return "Risk due to $explanation.";
+  }
+
+  Widget _explanationCard() => Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: _kSurface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: _kAccentG.withAlpha(46), width: 1.2),
+          boxShadow: [
+            BoxShadow(
+                color: _kAccentG.withAlpha(20),
+                blurRadius: 15,
+                offset: const Offset(0, 4)),
+          ],
+        ),
+        child: Row(children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: _kAccentG.withAlpha(26),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.auto_awesome, color: _kAccentG, size: 20),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text('XAI EXPLANATION',
+                          style: GoogleFonts.manrope(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              color: _kAccentG,
+                              letterSpacing: 1.2)),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(_aiExplanation ?? _generateExplanation(),
+                      style: GoogleFonts.manrope(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: _kText,
+                          height: 1.5)),
+                ]),
+          ),
+        ]),
+      );
+
+  // ─── Confidence Section ───────────────────────────────────────────
+  Widget _confidenceSection() => Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: _kSurface,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withAlpha(13),
+                blurRadius: 20,
+                offset: const Offset(0, 4)),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _sectionLabel('FABRIC DETECTION CONFIDENCE'),
+            const SizedBox(height: 16),
+            ..._confidences.map((c) {
+              final name = c['name'] as String;
+              final conf = (c['confidence'] as num).toDouble();
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(name,
+                            style: GoogleFonts.manrope(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: _kText)),
+                        Text('${conf.toInt()}%',
+                            style: GoogleFonts.manrope(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                                color: _kPrimaryG)),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: conf / 100,
+                        minHeight: 6,
+                        backgroundColor: _kBg,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                            conf > 70 ? _kAccentG : _kMedium),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+            if (_confidences.length > 1)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Row(
+                  children: [
+                    const Icon(Icons.info_outline, size: 12, color: _kSubtext),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Multiple materials detected. Score is weighted by confidence.',
+                        style: GoogleFonts.manrope(
+                            fontSize: 10,
+                            fontStyle: FontStyle.italic,
+                            color: _kSubtext),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      );
+
+  // ─── Alternative Comparison ───────────────────────────────────────
+  Widget _alternativeComparison() {
+    // Basic logic for a "What if" scenario
+    bool isSynthetic = ['Polyester', 'Nylon', 'Acrylic', 'Denim/Jean', 'Leather'].contains(_detectedFabric);
+    String altFabric = isSynthetic ? 'Linen' : 'Recycled Polyester';
+    double reduction = isSynthetic ? 70 : 40;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [const Color(0xFFE8F5E9), const Color(0xFFC8E6C9)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.compare_arrows, color: _kPrimaryG, size: 18),
+              const SizedBox(width: 8),
+              Text('ECO-SWAP INSIGHT',
+                  style: GoogleFonts.manrope(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: _kPrimaryG,
+                      letterSpacing: 1.1)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Switching to low-impact production methods could reduce the environmental impact by up to $reduction%!',
+            style: GoogleFonts.manrope(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: _kPrimaryG,
+                height: 1.4),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Prioritizing water-efficient harvesting and zero-waste fabrication can significantly improve this garment\'s profile.',
+            style: GoogleFonts.manrope(
+                fontSize: 12,
+                color: _kPrimaryG.withAlpha(200),
+                height: 1.4),
+          ),
+        ],
+      ),
+    );
   }
 }
 

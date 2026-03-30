@@ -47,19 +47,19 @@ try:
 except ImportError:
     TORCH_AVAILABLE = False
 
-load_dotenv()
-
 # ──────────────────────────────────────────────────────────────────
 #  Server Configuration & Paths
 # ──────────────────────────────────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+env_path = os.path.join(os.path.dirname(BASE_DIR), ".env")
+load_dotenv(env_path)
 OUTPUT_DIR = os.path.join(BASE_DIR, "outputs")
 MODEL_H5 = os.path.join(BASE_DIR, "fabric_model.h5")
 IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GROQ_API_KEY   = os.getenv("GROQ_API", "")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", os.getenv("GEMINI_API", os.getenv("GOOGLE_API_KEY", os.getenv("API_KEY", ""))))
+GROQ_API_KEY   = os.getenv("GROQ_API", os.getenv("API_KEY", ""))
 HF_TOKEN       = os.getenv("HF_TOKEN", "")
 
 if AI_TOOLS_AVAILABLE and GEMINI_API_KEY:
@@ -114,19 +114,62 @@ FABRIC_CLASSES = [
 
 def _weighted_metrics(probabilities: np.ndarray) -> dict:
     carbon = water = waste = eis = 0.0
-    for idx, _name, c, w, ws, e in FABRIC_CLASSES:
+    fabric_scores = []
+    for idx, name, c, w, ws, e in FABRIC_CLASSES:
         p = float(probabilities[idx])
         carbon += p * c
         water  += p * w
         waste  += p * ws
         eis    += p * e
+        fabric_scores.append({"name": name, "confidence": round(p * 100, 1)})
+    
+    # Get top 3 most likely fabrics
+    top_fabrics = sorted(fabric_scores, key=lambda x: x["confidence"], reverse=True)[:3]
+    
+    # Filter out fabrics with essentially 0% confidence
+    top_fabrics = [f for f in top_fabrics if f["confidence"] > 0.0]
+
     eis = float(np.clip(eis, 0.0, 1.0))
     return {
         "carbon": round(carbon, 2),
         "water": round(water, 1),
         "waste": round(waste, 3),
         "eis": round(eis, 3),
+        "top_fabrics": top_fabrics,
     }
+
+def _generate_ai_explanation(metrics: dict, detected_fabric: str, risk: str) -> str:
+    """Use Groq to generate a human-friendly explanation of the sustainability score."""
+    if not groq_client: 
+        return f"This {detected_fabric} garment has a {risk} sustainability risk based on its estimated resource usage."
+
+    try:
+        prompt = (
+            f"You are RenewQue, an expert in sustainable fashion. Using a multi-modal high-resolution image analysis, "
+            f"we have verified that this is a {detected_fabric} garment. "
+            f"Explain why it has a {risk} risk level based on these metrics:\n"
+            f"- Carbon Footprint: {metrics['carbon']} kg CO2\n"
+            # Limit the prompt to be concise
+            f"- Water Usage: {metrics['water']} Liters\n"
+            f"- Waste: {metrics['waste']} kg\n"
+            f"- Impact Score (EIS): {metrics['eis']}\n\n"
+            "Provide 2-3 sentences that are helpful, encouraging, and explain the main driver of this score. "
+            "Keep it under 60 words and professional yet friendly."
+        )
+
+        chat = groq_client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[
+                {"role": "system", "content": "You are a helpful, concise sustainable fashion expert."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=100,
+            temperature=0.7
+        )
+        return chat.choices[0].message.content.strip()
+    except Exception as e:
+        print(f"⚠️ AI Explanation failed: {e}")
+        return f"This {detected_fabric} item has a {risk} risk level due to its carbon and water footprint."
 
 def _risk_level(eis: float) -> str:
     if eis >= 0.60: return "High"
@@ -138,6 +181,36 @@ def _preprocess_image(image_bytes: bytes) -> np.ndarray:
     img = img.resize((224, 224), Image.LANCZOS)
     arr = np.array(img, dtype=np.float32) / 255.0
     return np.expand_dims(arr, axis=0)
+
+def _verify_fabric_with_vision(image_bytes: bytes, top_detected: str) -> str:
+    """Use Gemini Vision to identify the fabric texture with high accuracy (Multi-Modal)."""
+    if not AI_TOOLS_AVAILABLE or not GEMINI_API_KEY:
+        return top_detected
+
+    try:
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        
+        prompt = (
+            f"Compare this image with the initial guess of '{top_detected}'. "
+            "Examine texture, sheen, drape, and weave. "
+            "If it's definitely Satin, Silk, Velvet, Organza, or another specific material, state that. "
+            "If it's exactly what the model thought, just return '{top_detected}'. "
+            "Return ONLY the confirmed fabric name (e.g. 'Satin Dress')."
+        )
+        
+        response = model.generate_content([img, prompt])
+        res_text = response.text.strip().replace('"', '')
+        
+        # If it returned a long sentence, clean it
+        if "is" in res_text.lower():
+            res_text = res_text.split("is")[-1].strip().strip(".")
+
+        print(f"👁️ Vision Verification: {top_detected} -> {res_text}")
+        return res_text
+    except Exception as e:
+        print(f"⚠️ Vision Verification failed: {e}")
+        return top_detected
 
 # ──────────────────────────────────────────────────────────────────
 #  Similarity Search logic (Torch / Similarity)
@@ -208,7 +281,14 @@ async def predict_sustainability(image: UploadFile = File(...)):
     metrics = _weighted_metrics(probs)
     risk = _risk_level(metrics["eis"])
     top_idx = int(np.argmax(probs))
-    top_name = FABRIC_CLASSES[top_idx][1]
+    keras_name = FABRIC_CLASSES[top_idx][1]
+
+    # Vision-Modal Verification (Second Opinion)
+    vision_name = _verify_fabric_with_vision(image_bytes, keras_name)
+    final_name = vision_name or keras_name
+
+    # Generate dynamic AI explanation based on the Vision-verified fabric name
+    explanation = _generate_ai_explanation(metrics, final_name, risk)
 
     return JSONResponse(content={
         "Carbon": metrics["carbon"],
@@ -216,7 +296,10 @@ async def predict_sustainability(image: UploadFile = File(...)):
         "Waste": metrics["waste"],
         "EIS": metrics["eis"],
         "Risk_Level": risk,
-        "detected_fabric": top_name,
+        "detected_fabric": final_name,
+        "explanation": explanation,
+        "confidence_breakdown": metrics["top_fabrics"],
+        "keras_prediction": keras_name, # keep original for transparency
         "class_probs": [round(float(p), 4) for p in probs],
     })
 
@@ -256,7 +339,7 @@ def analyze_image_with_groq_vision(image_bytes: bytes) -> str:
         import base64
         b64_img = base64.b64encode(image_bytes).decode('utf-8')
         response = groq_client.chat.completions.create(
-            model="llama-3.2-11b-vision-preview",
+            model="llama-3.2-90b-vision-preview",
             messages=[{
                 "role": "user",
                 "content": [
@@ -358,8 +441,9 @@ def build_sd_prompt_with_groq(gemini_description: str, user_idea: str) -> str:
 def generate_image_url_pollinations(prompt: str) -> str:
     clean_prompt = prompt.strip().replace('"', '')[:250]
     encoded = urllib.parse.quote(clean_prompt)
-    public_key = "pk_31oNBvU9JLA1ApNX"
-    url = f"https://gen.pollinations.ai/image/{encoded}?model=flux&width=512&height=768&nologo=true&key={public_key}"
+    # Removing hardcoded public_key to avoid 403 Forbidden errors.
+    # Using public pool for generation.
+    url = f"https://gen.pollinations.ai/image/{encoded}?model=flux&width=512&height=768&nologo=true"
     print(f"🌐 Pollinations URL: {url[:80]}...")
     return url
 

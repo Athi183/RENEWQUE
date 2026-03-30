@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import '../services/groq_api.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class AssistantChatPage extends StatefulWidget {
   const AssistantChatPage({super.key});
@@ -24,7 +25,7 @@ class _AssistantChatPageState extends State<AssistantChatPage> {
 
   // ── Correct dynamic URL for backend ──
   static const String _kLanIp = '10.52.13.34';
-  final String _backendBaseUrl = (const bool.fromEnvironment('dart.library.js_util'))
+  final String _backendBaseUrl = kIsWeb
       ? 'http://localhost:8000'
       : 'http://$_kLanIp:8000';
   final TextEditingController _controller = TextEditingController();
@@ -35,7 +36,8 @@ class _AssistantChatPageState extends State<AssistantChatPage> {
       "text": "Hello! I'm your RenewQue Assistant. I can help you redesign old clothes, check fabric sustainability, or find the best eco-friendly boutiques. What's on your mind today? ✨",
     }
   ];
-  File? selectedImage;
+  XFile? selectedImageFile;
+  Uint8List? selectedImageBytes;
   bool _isLoading = false;
   final ImagePicker _picker = ImagePicker();
 
@@ -63,7 +65,13 @@ class _AssistantChatPageState extends State<AssistantChatPage> {
                 title: const Text("Gallery", style: TextStyle(fontWeight: FontWeight.w600)),
                 onTap: () async {
                   final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-                  if (image != null) setState(() => selectedImage = File(image.path));
+                  if (image != null) {
+                    final bytes = await image.readAsBytes();
+                    setState(() {
+                      selectedImageFile = image;
+                      selectedImageBytes = bytes;
+                    });
+                  }
                   if (context.mounted) Navigator.pop(context);
                 },
               ),
@@ -72,7 +80,13 @@ class _AssistantChatPageState extends State<AssistantChatPage> {
                 title: const Text("Camera", style: TextStyle(fontWeight: FontWeight.w600)),
                 onTap: () async {
                   final XFile? image = await _picker.pickImage(source: ImageSource.camera);
-                  if (image != null) setState(() => selectedImage = File(image.path));
+                  if (image != null) {
+                    final bytes = await image.readAsBytes();
+                    setState(() {
+                      selectedImageFile = image;
+                      selectedImageBytes = bytes;
+                    });
+                  }
                   if (context.mounted) Navigator.pop(context);
                 },
               ),
@@ -86,26 +100,30 @@ class _AssistantChatPageState extends State<AssistantChatPage> {
 
   Future<void> sendMessage({String? customText}) async {
     final textToSend = customText ?? _controller.text.trim();
-    if (textToSend.isEmpty && selectedImage == null) return;
+    if (textToSend.isEmpty && selectedImageBytes == null) return;
     if (_isLoading) return;
 
-    final image = selectedImage;
+    final imageBytes = selectedImageBytes;
+    final imageFile = selectedImageFile;
     setState(() {
       _isLoading = true;
       messages.add({
         "role": "user",
         "text": textToSend,
-        "localImage": image?.path,
+        "localImageBytes": imageBytes,
       });
     });
 
     _controller.clear();
-    setState(() => selectedImage = null);
+    setState(() {
+      selectedImageFile = null;
+      selectedImageBytes = null;
+    });
     _scrollToBottom();
 
     try {
-      if (image != null) {
-        final result = await redesignImage(image, textToSend);
+      if (imageBytes != null && imageFile != null) {
+        final result = await redesignImage(imageBytes, imageFile.name, textToSend);
         setState(() {
           _isLoading = false;
           messages.add({
@@ -128,7 +146,7 @@ class _AssistantChatPageState extends State<AssistantChatPage> {
     } catch (e) {
       setState(() {
         _isLoading = false;
-        messages.add({"role": "ai", "text": "❌ Something went wrong. Let me try again later."});
+        messages.add({"role": "ai", "text": "❌ Error: $e"});
       });
     }
     _scrollToBottom();
@@ -146,11 +164,11 @@ class _AssistantChatPageState extends State<AssistantChatPage> {
     });
   }
 
-  Future<Map<String, Object?>> redesignImage(File imageFile, String userPrompt) async {
+  Future<Map<String, Object?>> redesignImage(Uint8List imageBytes, String filename, String userPrompt) async {
     final url = "$_backendBaseUrl/redesign";
     try {
       var request = http.MultipartRequest("POST", Uri.parse(url));
-      request.files.add(await http.MultipartFile.fromPath("file", imageFile.path));
+      request.files.add(http.MultipartFile.fromBytes("file", imageBytes, filename: filename));
       request.fields["prompt"] = userPrompt.isEmpty ? "redesign this outfit sustainably" : userPrompt;
       var response = await request.send().timeout(const Duration(seconds: 120));
       var responseData = await response.stream.bytesToString();
@@ -244,12 +262,12 @@ class _AssistantChatPageState extends State<AssistantChatPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          if (msg["localImage"] != null)
+          if (msg["localImageBytes"] != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(20),
-                child: Image.file(File(msg["localImage"]), width: 220, height: 220, fit: BoxFit.cover),
+                child: Image.memory(msg["localImageBytes"]!, width: 220, height: 220, fit: BoxFit.cover),
               ),
             ),
           if (msg["text"] != null && msg["text"].isNotEmpty)
@@ -361,7 +379,7 @@ class _AssistantChatPageState extends State<AssistantChatPage> {
       ),
       child: Column(
         children: [
-          if (selectedImage != null)
+          if (selectedImageBytes != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: Row(
@@ -370,13 +388,16 @@ class _AssistantChatPageState extends State<AssistantChatPage> {
                     children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(16),
-                        child: Image.file(selectedImage!, width: 80, height: 80, fit: BoxFit.cover),
+                        child: Image.memory(selectedImageBytes!, width: 80, height: 80, fit: BoxFit.cover),
                       ),
                       Positioned(
                         top: 2,
                         right: 2,
                         child: GestureDetector(
-                          onTap: () => setState(() => selectedImage = null),
+                          onTap: () => setState(() {
+                            selectedImageFile = null;
+                            selectedImageBytes = null;
+                          }),
                           child: const CircleAvatar(radius: 10, backgroundColor: Colors.red, child: Icon(Icons.close, size: 12, color: Colors.white)),
                         ),
                       ),

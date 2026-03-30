@@ -4,8 +4,8 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class GroqService {
-  // Load API key from .env file
-  static String get _apiKey => dotenv.env['GROQ_API'] ?? '';
+  // Load API key from .env file, checking multiple possible variable names
+  static String get _apiKey => dotenv.env['GROQ_API'] ?? dotenv.env['API_KEY'] ?? '';
 
   // ✅ CORRECT Groq API endpoint
   static const String _url = "https://api.groq.com/openai/v1/chat/completions";
@@ -30,11 +30,11 @@ class GroqService {
   }) async {
     // Step 1: Validate API key is loaded from .env
     if (_apiKey.isEmpty) {
-      print("❌ ERROR: GROQ_API key not found in .env file");
-      throw Exception("GROQ_API key not found in .env");
+      print("❌ ERROR: API key not found in .env file");
+      throw Exception("API key not found in .env. Please define GROQ_API=...");
     }
     
-    print("✅ API key loaded: ${_apiKey.substring(0, 10)}...");
+    print("✅ API key loaded: ${_apiKey.length > 5 ? _apiKey.substring(0, 5) : _apiKey}...");
 
     // Step 2: Check if image was provided and reject it
     if (image != null) {

@@ -1,0 +1,2 @@
+[error] The class 'EdgeInsets' doesn't have a constant constructor 'top' (c:\flutter_projects\renewque\lib\screens\risk.dart:977:43)
+[info] Unnecessary use of 'toList' in a spread (c:\flutter_projects\renewque\lib\screens\risk.dart:974:16)
